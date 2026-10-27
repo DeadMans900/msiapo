@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block body %}
+{% if q %}<p>По запросу «{{ q }}» найдено: {{ results|length }}</p>{% endif %}
+<table><tr><th>Тип</th><th>Найдено</th></tr>
+{% for t, v in results %}<tr><td><span class="tag">{{ t }}</span></td><td>{{ v }}</td></tr>{% else %}
+{% if not q %}<tr><td colspan="2" class="muted">Введите запрос в строку поиска в шапке портала — поиск идёт по заявкам, НС, СОПам, приказам, подразделениям и телефонному справочнику.</td></tr>{% endif %}{% endfor %}</table>
+{% endblock %}

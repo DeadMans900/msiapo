@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="grid">
+  <div class="card">
+    <h2 style="margin-top:0">Новая заявка (маршрутизируется автоматически)</h2>
+    <form method="post" action="/helpdesk/new">
+      <div class="frow"><select name="segment" required>
+        {% for k, t in seg_titles.items() %}<option value="{{ k }}">{{ t }}</option>{% endfor %}</select></div>
+      <div class="frow"><input type="text" name="summary" placeholder="Краткое описание" required></div>
+      <div class="frow"><textarea name="description" placeholder="Подробности"></textarea></div>
+      <div class="frow"><input type="text" name="room" placeholder="Кабинет"><input type="text" name="asset_ref" placeholder="ИНВ. номер / модель оборудования"></div>
+      <button>Создать заявку</button>
+    </form>
+    <p class="muted">Категории по сегментам: IT — оргтехника/доступы/телефония; АХЧ — электрика, сантехника, уборка, мебель, хозматериалы, транспорт; МедТехника — поломки, ТО, поверка, подключение, консультации, списание.</p>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">Мои заявки</h2>
+    <table><tr><th>#</th><th>Сегмент</th><th>Тема</th><th>Статус</th></tr>
+    {% for t in mine %}<tr><td>{{ t['id'] }}</td><td>{{ seg_titles[t['segment']] }}</td><td>{{ t['summary'] }}</td>
+    <td><span class="tag {{ 'green' if t['status']=='closed' else ('orange' if t['status']=='created' else '') }}">{{ statuses[t['status']] }}</span></td></tr>{% else %}
+    <tr><td colspan="4" class="muted">Нет заявок.</td></tr>{% endfor %}</table>
+  </div>
+</div>
+
+{% if queue %}
+<h2>Моя очередь оператора{% if user['role_key']=='admin' %} (все сегменты){% endif %}</h2>
+<table><tr><th>#</th><th>Сегмент</th><th>Заявка</th><th>SLA</th><th>Статус</th><th>Действие</th></tr>
+{% for t in queue %}
+<tr><td>{{ t['id'] }}</td><td>{{ seg_titles[t['segment']] }}</td><td>{{ t['summary'] }}<br><span class="muted">{{ t['description'] }} · каб. {{ t['room'] }}{{ ' · '+t['asset_ref'] if t['asset_ref'] else '' }}</span></td>
+<td>{{ t['sla_hours'] }} ч</td><td>{{ statuses[t['status']] }}</td>
+<td><form class="frow" method="post" action="/helpdesk/{{ t['id'] }}/status" style="margin:0">
+  <select name="status">{% for s, l in statuses.items() %}<option value="{{ s }}" {{ 'selected' if s=='accepted' }}>{{ l }}</option>{% endfor %}</select>
+  <button class="btn sm">Применить</button></form></td></tr>
+{% endfor %}</table>
+{% endif %}
+
+<h2>Все заявки {% if seg %}(фильтр: {{ seg_titles[seg] }}){% endif %}</h2>
+<form class="frow" method="get">
+  <select name="seg" style="max-width:220px"><option value="">Все сегменты</option>
+  {% for k, t in seg_titles.items() %}<option value="{{ k }}" {{ 'selected' if seg==k }}>{{ t }}</option>{% endfor %}</select>
+  <button>Фильтровать</button>
+</form>
+<table><tr><th>#</th><th>Сегмент</th><th>Категория</th><th>Тема</th><th>Подразделение</th><th>Автор</th><th>Статус</th><th>Создана</th></tr>
+{% for t in tickets %}<tr><td>{{ t['id'] }}</td><td>{{ seg_titles[t['segment']] }}</td><td>{{ t['category'] }}</td>
+<td>{{ t['summary'] }}{% if t['ns_id'] %} <span class="tag orange">из НС №{{ t['ns_id'] }}</span>{% endif %}</td>
+<td>{{ t['dept_name'] or '—' }}</td><td>{{ t['author_fio'] }}</td>
+<td><span class="tag {{ 'green' if t['status']=='closed' else ('red' if t['status']=='returned' else '') }}">{{ statuses[t['status']] }}</span></td>
+<td>{{ t['created_at'] }}</td></tr>{% endfor %}</table>
+{% endblock %}

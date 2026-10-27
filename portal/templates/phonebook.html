@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block body %}
+<form class="frow" method="get">
+  <input type="text" name="q" value="{{ q }}" placeholder="ФИО, номер телефона, кабинет" style="max-width:280px">
+  <select name="dept" style="max-width:320px"><option value="0">Все подразделения</option>
+    {% for d in depts %}<option value="{{ d['id'] }}" {{ 'selected' if dept==d['id'] }}>{{ d['name'] }}</option>{% endfor %}</select>
+  <button>Найти</button>
+</form>
+<table><tr><th>Подразделение</th><th>Кабинет</th><th>ФИО / служба</th><th>Должность</th><th>Телефон</th></tr>
+{% for r in rows %}<tr><td>{{ r['dept_name'] or '—' }}</td><td>{{ r['room'] }}</td><td>{{ r['fio'] }}</td><td>{{ r['position'] }}</td><td><b>{{ r['phone'] }}</b></td></tr>{% else %}
+<tr><td colspan="5" class="muted">Ничего не найдено.</td></tr>{% endfor %}</table>
+{% endblock %}

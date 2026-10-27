@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block anon %}
+<div class="card" style="max-width:420px;margin:3rem auto">
+  <h1 style="margin-top:0">Вход на портал</h1>
+  <p class="muted">ОГАУЗ «Медсанчасть ИАПО». Учётные записи создаёт администратор; при первом входе обязательна смена пароля.</p>
+  {% if error %}<div class="flash err">{{ error }}</div>{% endif %}
+  <form method="post" action="/login">
+    <div class="frow"><input type="text" name="username" placeholder="Логин" required></div>
+    <div class="frow"><input type="password" name="password" placeholder="Пароль" required></div>
+    <button type="submit">Войти</button>
+  </form>
+  <p class="muted" style="margin-top:1rem">Демо-доступ (временный пароль = логин + <code>123!</code>):<br>
+  smirnov.av — администратор · kozlova.ip — менеджер качества · belova.ms — главный врач ·
+  sokolov.do — сотрудник · volkov.ai — ПЭО · zaytseva.np — главбух (УКЭП) · novikov.sd — HelpDesk IT ·
+  fedorova.on — АХЧ · grigoriev.pa — медтехника · morozova.ev — кадры · petrov.rs — МСЭ · sidorova.ma — аптека</p>
+</div>
+{% endblock %}

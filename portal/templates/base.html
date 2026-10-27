@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ section }} — Портал МСЧ ИАПО</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+{% if user %}
+<header class="topbar">
+  <button id="burger" onclick="document.body.classList.toggle('nav-open')">☰</button>
+  <div class="brand">ОГАУЗ «Медсанчасть&nbsp;ИАПО» <span>внутренний портал</span></div>
+  <form action="/search" method="get" class="searchbox">
+    <input name="q" placeholder="Сквозной поиск…" value="{{ q or '' }}">
+  </form>
+  <a class="bell" href="/notifications">🔔{% if unread %}<span class="badge">{{ unread }}</span>{% endif %}</a>
+  <div class="who">{{ user['fio'] }}<br><small>{{ role_names.get(user['role_key'], user['role_key']) }} · <a href="/logout">выход</a> · <a href="/change-password">сменить пароль</a></small></div>
+</header>
+<div class="layout">
+  <nav class="side" id="side">
+    {% for need_role, title, url in menu %}
+      {% set rv = role_vis.get(user['role_key'], []) %}
+      {% set allowed = (need_role == "") or ('*' in rv) or (need_role in rv) %}
+      {% if allowed %}<a href="{{ url }}" class="{{ 'active' if request.url.path == url }}">{{ title }}</a>{% endif %}
+    {% endfor %}
+  </nav>
+  <main class="content">
+    <h1>{{ section }}</h1>
+    {% if error_ukiep %}<div class="flash err">{{ error_ukiep }}</div>{% endif %}
+    {% if flash %}<div class="flash ok">{{ flash }}</div>{% endif %}
+    {% block body %}{% endblock %}
+  </main>
+</div>
+{% else %}
+<main style="padding:2rem">{% block anon %}{% endblock %}</main>
+{% endif %}
+</body>
+</html>

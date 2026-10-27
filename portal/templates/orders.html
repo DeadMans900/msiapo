@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block body %}
+<h2>Приказы организации (с отметкой ознакомления под роспись)</h2>
+<table><tr><th>№ / дата</th><th>Наименование</th><th>Вид</th><th>Ознакомление</th><th></th></tr>
+{% for o in rows %}
+<tr><td>{{ o['num'] }} от {{ o['odate'] }}</td><td>{{ o['title'] }}</td><td>{{ o['otype'] }}{% if o['mandatory_read'] %} <span class="tag orange">обязательно к ознакомлению</span>{% endif %}</td>
+<td>{% if o['id'] in read_ids %}<span class="tag green">ознакомлен(а) ✔</span>{% else %}<span class="tag red">не ознакомлен(а)</span>{% endif %}</td>
+<td>{% if o['id'] not in read_ids %}<form method="post" action="/orders/{{ o['id'] }}/read"><button class="btn sm">Подтвердить ознакомление</button></form>{% endif %}</td></tr>
+{% endfor %}</table>
+<p class="muted">Срок подтверждения ознакомления — 3 рабочих дня; просрочка фиксируется и попадает в сводку для руководства.</p>
+
+<h2>Приказы министерства здравоохранения Иркутской области (входящие → внутренние)</h2>
+<table><tr><th>№ / дата МЗ ИО</th><th>Наименование</th><th>Внутренний приказ-дублёр</th></tr>
+{% for m in mz %}<tr><td>{{ m['num'] }} от {{ m['odate'] }}</td><td>{{ m['title'] }}</td><td>{{ m['inner_num'] or 'проект готовится' }}</td></tr>{% endfor %}</table>
+{% endblock %}

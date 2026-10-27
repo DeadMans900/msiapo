@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block body %}
+<table><tr><th>Код / редакция</th><th>Наименование СОП</th><th>Действует с</th><th>Мои отметки</th><th>Связанные НС</th></tr>
+{% for s in rows %}
+<tr><td>{{ s['code'] }}<br><span class="muted">ред. {{ s['version'] }}</span></td>
+<td>{{ s['title'] }}{% if s['body'] %}<br><span class="muted">{{ s['body'] }}</span>{% endif %}
+{% if s['mandatory_read'] %} <span class="tag orange">обязателен к прочтению</span>{% endif %}</td>
+<td>{{ s['effective_date'] }}</td>
+<td>{% if s['id'] in read_ids %}<span class="tag green">прочитан ✔</span>{% else %}
+<form method="post" action="/sops/{{ s['id'] }}/read"><button class="btn sm">Подтвердить прочтение</button></form>{% endif %}</td>
+<td>{% for ns in linked_ns[s['id']] %}<span class="tag">НС №{{ ns['id'] }}: {{ statuses.get(ns['status'],'') or ns['status'] }}</span> {% else %}—{% endfor %}</td></tr>
+{% endfor %}</table>
+<p class="muted">При изменении СОП подписчик предыдущей редакции автоматически получает уведомление о новой версии (раздел 4.2 ТЗ).</p>
+{% endblock %}

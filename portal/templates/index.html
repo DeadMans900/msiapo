@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="grid">
+  <div class="card">
+    <h2 style="margin-top:0">Новости организации</h2>
+    {% for n in news %}<p><b>{{ n['title'] }}</b> <span class="muted">{{ n['created_at'] }}</span><br>{{ n['body'] }}</p>{% endfor %}
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">Дежурные на сегодня ({{ today }})</h2>
+    <table>{% for d in duty %}<tr><td>{{ d['service'] }}</td><td>{{ d['fio'] }}</td><td>{{ d['phone'] }}</td></tr>{% endfor %}</table>
+    <h2>Дни рождения в этом месяце</h2>
+    <p class="muted">{% for b in bdays %}{{ b['birth_month_day']|replace('-','.') }} — {{ b['fio'] }}{% if not loop.last %}; {% endif %}{% endfor %}</p>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">Внешние системы</h2>
+    {% for l in links %}<a href="{{ l['url'] }}" target="_blank" style="display:block;padding:.2rem 0">{{ l['name'] }} ↗</a>{% endfor %}
+    <h2>Ближайшие мероприятия</h2>
+    <table>{% for e in events %}<tr><td>{{ e['bdate'] }} {{ e['btime'] }}</td><td>{{ e['hall'] }}</td><td>{{ e['topic'] }}</td></tr>{% endfor %}</table>
+  </div>
+</div>
+<p class="muted">Прототип по ТЗ ред. 11: MVP-разделы, HelpDesk (3 сегмента), НС, согласования с УКЭП, закупки, МСЭ, HR, опросы, аудиты, формуляр ЛС, учёт техники, ГО и ЧС, личный кабинет, администрирование.</p>
+{% endblock %}

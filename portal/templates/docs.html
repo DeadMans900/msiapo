@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block body %}
+<form class="frow" method="get"><input type="text" name="q" value="{{ q }}" placeholder="Поиск по названию документа"></form>
+<table><tr><th>Документ</th><th>Вид</th><th>Версия / дата введения</th></tr>
+{% for d in rows %}<tr><td>{{ d['title'] }}</td><td><span class="tag">{{ d['kind'] }}</span></td><td>{{ d['version'] }} от {{ d['effective_date'] }}</td></tr>{% else %}
+<tr><td colspan="3" class="muted">Нет документов по запросу.</td></tr>{% endfor %}</table>
+<p class="muted">Библиотека: клинические рекомендации, стандарты оснащения, инструкции по охране труда и пожарной безопасности (раздел 4.12 ТЗ).</p>
+{% endblock %}
