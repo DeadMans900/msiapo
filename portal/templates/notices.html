@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block body %}
+{% if can_post %}
+<div class="card">
+  <h2 style="margin-top:0">Новое объявление</h2>
+  <form method="post" action="/notices/new">
+    <div class="frow"><textarea name="text" placeholder="Текст объявления (видно всем сотрудникам)" required></textarea></div>
+    <button>Опубликовать</button>
+  </form>
+</div>
+{% endif %}
+{% for n in notices %}
+<div class="card"><b>{{ n['text'] }}</b><br>
+  <span class="muted">{{ n['created_at'] }} · {{ n['author'] }}{% if n['dept_id'] %} · подразделение №{{ n['dept_id'] }}{% endif %}</span></div>
+{% else %}<p class="muted">Объявлений нет.</p>{% endfor %}
+<p class="muted">Публикация доступна руководителям подразделений, заместителям, главному врачу и администратору (ТЗ п. 4.19).</p>
+{% endblock %}

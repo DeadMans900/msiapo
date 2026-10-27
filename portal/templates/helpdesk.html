@@ -4,8 +4,9 @@
   <div class="card">
     <h2 style="margin-top:0">Новая заявка (маршрутизируется автоматически)</h2>
     <form method="post" action="/helpdesk/new">
-      <div class="frow"><select name="segment" required>
-        {% for k, t in seg_titles.items() %}<option value="{{ k }}">{{ t }}</option>{% endfor %}</select></div>
+      <div class="frow"><div style="flex:1"><label>Сегмент (исполнитель определится автоматически)</label>
+        <select name="segment" required>
+        {% for k, t in seg_titles.items() %}<option value="{{ k }}">{{ t }}</option>{% endfor %}</select></div></div>
       <div class="frow"><input type="text" name="summary" placeholder="Краткое описание" required></div>
       <div class="frow"><textarea name="description" placeholder="Подробности"></textarea></div>
       <div class="frow"><input type="text" name="room" placeholder="Кабинет"><input type="text" name="asset_ref" placeholder="ИНВ. номер / модель оборудования"></div>

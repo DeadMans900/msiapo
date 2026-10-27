@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block body %}
+<table><tr><th>Сотрудник</th>{% if rows[0]['fio'] is defined %}<th>Подразделение</th>{% endif %}<th>Вид документа</th><th>Наименование</th><th>Действует до</th><th>Осталось</th></tr>
+{% for d in rows %}
+{% set dl = days_left(d['end_date']) %}
+<tr><td>{{ d['fio'] if d['fio'] is defined else 'Вы' }}</td>
+{% if d['dept_name'] is defined and d['fio'] is defined %}<td>{{ d['dept_name'] or '—' }}</td>{% endif %}
+<td><span class="tag">{{ {'cert':'УКЭП','accreditation':'Аккредитация','nmo':'НМО','sanmin':'Санминимум','med_inspect':'Медосмотр'}.get(d['kind'], d['kind']) }}</span></td>
+<td>{{ d['label'] }}</td><td>{{ d['end_date'] }}</td>
+<td>{% if dl < 0 %}<span class="tag red">просрочено ({{ dl }} дн.)</span>
+{% elif dl <= 14 %}<span class="tag orange">{{ dl }} дн.</span>
+{% elif dl <= 30 %}<span class="tag">{{ dl }} дн.</span>
+{% else %}<span class="tag green">{{ dl }} дн.</span>{% endif %}</td></tr>
+{% else %}<tr><td colspan="6" class="muted">Нет документов с контролируемым сроком.</td></tr>{% endfor %}</table>
+<p class="muted">Контроль сроков: аккредитация специалистов, НМО (250 часов), санминимум, периодические медосмотры, допуски, сертификаты УКЭП (ТЗ п. 4.10). При ≤30 днях сотрудник получает уведомление автоматически.</p>
+{% endblock %}

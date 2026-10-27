@@ -80,7 +80,7 @@ def current_user(request):
     con.close()
     return u
 
-def ctx(request, user=None, **kw):
+def ctx(request, user=None, template=None, **kw):
     if user is None:
         user = current_user(request)
     unread = 0
@@ -88,9 +88,21 @@ def ctx(request, user=None, **kw):
         con = get_db()
         unread = con.execute("SELECT COUNT(*) c FROM notification WHERE user_id=? AND read=0", (user["id"],)).fetchone()["c"]
         con.close()
+    kw.setdefault("q", "")
+    kw.setdefault("flash", "")
     data = dict(user=user, unread=unread, today=str(TODAY), menu=ROLE_MENU,
                 role_names=ROLE_NAMES, role_vis=ROLE_VIS, **kw)
-    return templates.TemplateResponse(request=request, name="base.html", context=data)
+    name = template if template else (kw.get("section", "index").lower().replace(" ", "_") + ".html")
+    return templates.TemplateResponse(request=request, name=name, context=data)
+
+@app.exception_handler(HTTPException)
+async def http_exc_page(request: Request, exc: HTTPException):
+    """Страница ошибки вместо JSON — с навигацией портала, если пользователь авторизован."""
+    u = current_user(request)
+    return templates.TemplateResponse(request, "error.html",
+        dict(user=u, unread=0, today=str(TODAY), menu=ROLE_MENU, role_names=ROLE_NAMES,
+             role_vis=ROLE_VIS, q="", flash="", code=exc.status_code, detail=exc.detail),
+        status_code=exc.status_code)
 
 @app.get("/login", response_class=HTMLResponse)
 def login_page(request: Request):
@@ -160,7 +172,7 @@ def index(request: Request):
     bdays = con.execute("SELECT fio, birth_month_day FROM users WHERE substr(birth_month_day,1,2)=? ORDER BY birth_month_day", (f"{TODAY.month:02d}",)).fetchall()
     events = con.execute("SELECT * FROM booking WHERE bdate>=? ORDER BY bdate,btime LIMIT 5", (str(TODAY),)).fetchall()
     con.close()
-    return ctx(request, news=news, duty=duty, links=links, bdays=bdays, events=events, section="Главная")
+    return ctx(request, news=news, duty=duty, links=links, bdays=bdays, events=events, template="index.html", section="Главная")
 
 # ---------- Поиск ----------
 @app.get("/search", response_class=HTMLResponse)
@@ -181,7 +193,7 @@ def search(request: Request, q: str = ""):
             for r in con.execute(sql, (like, like)).fetchall():
                 res.append((t, list(r)[0]))
         con.close()
-    return ctx(request, q=q, results=res[:50], section="Поиск")
+    return ctx(request, q=q, results=res[:50], template="search.html", section="Поиск")
 
 # ---------- Телефонный справочник ----------
 @app.get("/phonebook", response_class=HTMLResponse)
@@ -199,7 +211,7 @@ def phonebook(request: Request, q: str = "", dept: int = 0):
     rows = con.execute(sql + " ORDER BY d.name, p.fio", args).fetchall()
     depts = con.execute("SELECT * FROM departments ORDER BY name").fetchall()
     con.close()
-    return ctx(request, rows=rows, depts=depts, q=q, dept=dept, section="Телефонный справочник")
+    return ctx(request, rows=rows, depts=depts, q=q, dept=dept, template="phonebook.html", section="Телефонный справочник")
 
 # ---------- Приказы + ознакомление ----------
 @app.get("/orders", response_class=HTMLResponse)
@@ -212,7 +224,7 @@ def orders(request: Request):
     mz = con.execute("""SELECT m.*, o.num inner_num FROM minzdrav_order m LEFT JOIN orders o ON o.id=m.inner_order_id""").fetchall()
     read_ids = {r["doc_id"] for r in con.execute("SELECT doc_id FROM read_log WHERE doc_kind='order' AND user_id=?", (u["id"],)).fetchall()}
     con.close()
-    return ctx(request, rows=rows, mz=mz, read_ids=read_ids, section="Приказы организации")
+    return ctx(request, rows=rows, mz=mz, read_ids=read_ids, template="orders.html", section="Приказы организации")
 
 @app.post("/orders/{oid}/read")
 def order_read(request: Request, oid: int):
@@ -239,7 +251,7 @@ def sops(request: Request):
     for r in rows:
         linked_ns[r["id"]] = con.execute("SELECT id,description,status FROM ns_event WHERE sop_id=?", (r["id"],)).fetchall()
     con.close()
-    return ctx(request, rows=rows, read_ids=read_ids, linked_ns=linked_ns, section="СОПы")
+    return ctx(request, rows=rows, read_ids=read_ids, linked_ns=linked_ns, template="sops.html", section="СОПы")
 
 @app.post("/sops/{sid}/read")
 def sop_read(request: Request, sid: int):
@@ -262,7 +274,7 @@ def docs(request: Request, q: str = ""):
     con = get_db()
     rows = con.execute("SELECT * FROM md_doc WHERE title LIKE ? ORDER BY effective_date DESC", (f"%{q}%",)).fetchall()
     con.close()
-    return ctx(request, rows=rows, q=q, section="Библиотека нормативных документов")
+    return ctx(request, rows=rows, q=q, template="docs.html", section="Библиотека нормативных документов")
 
 # ---------- HelpDesk ----------
 SEG_TITLES = {"it": "IT (АСУ)", "ahch": "АХЧ", "mt": "МедТехника"}
@@ -290,14 +302,18 @@ def helpdesk(request: Request, seg: str = ""):
     con.close()
     return ctx(request, mine=mine, queue=queue, tickets=all_t, cats=cats, seg=seg,
                seg_titles=SEG_TITLES, statuses={"created": "создана", "accepted": "принята", "in_work": "в работе",
-                                                "done": "выполнена", "closed": "закрыта", "returned": "возвращена"}, section="HelpDesk")
+                                                "done": "выполнена", "closed": "закрыта", "returned": "возвращена"}, template="helpdesk.html", section="HelpDesk")
 
 @app.post("/helpdesk/new")
-def hd_new(request: Request, segment: str = Form(...), category: str = Form(...), summary: str = Form(...),
+def hd_new(request: Request, segment: str = Form(...), summary: str = Form(...),
            description: str = Form(""), room: str = Form(""), asset_ref: str = Form("")):
     u = current_user(request)
     if not u:
         return RedirectResponse("/login", status_code=302)
+    cats = HD_CATEGORIES.get(segment)
+    if not cats:
+        raise HTTPException(400, "Неизвестный сегмент заявки")
+    category = cats[0]
     con = get_db()
     con.execute("""INSERT INTO ticket(segment,category,summary,description,dept_id,room,asset_ref,author_id,status,sla_hours,created_at)
                    VALUES(?,?,?,?,?,?,?,?, 'created', ?, datetime('now','localtime'))""",
@@ -347,10 +363,13 @@ def ns_list(request: Request):
     sops = con.execute("SELECT * FROM sop ORDER BY title").fetchall()
     chars = NS_CHARACTERS; hints = NS_SEGMENT_HINT
     is_quality = u["role_key"] in ("quality", "admin", "chief")
+    depts = con.execute("SELECT id,name FROM departments ORDER BY name").fetchall()
+    users_q = con.execute("SELECT id,fio FROM users WHERE active=1 ORDER BY fio").fetchall()
     con.close()
     return ctx(request, rows=rows, mine=mine, stats=stats, by_dept=by_dept, sops=sops, chars=chars, hints=hints,
-               is_quality=is_quality, statuses={"registered": "зарегистрировано", "processing": "в отработке",
-                                                "closed": "закрыто"}, section="Нежелательные события")
+               is_quality=is_quality, depts=depts, all_users=users_q, hd_cats=HD_CATEGORIES, seg_titles=SEG_TITLES,
+               statuses={"registered": "зарегистрировано", "processing": "в отработке",
+                                                "closed": "закрыто"}, template="ns.html", section="Нежелательные события")
 
 @app.post("/ns/new")
 def ns_new(request: Request, event_date: str = Form(...), dept_id: int = Form(0), character: str = Form(...),
@@ -415,9 +434,23 @@ def requests_list(request: Request):
         steps[r["id"]] = con.execute("SELECT * FROM approval_step WHERE request_id=? ORDER BY step_no", (r["id"],)).fetchall()
     certs = con.execute("SELECT * FROM cert_registry WHERE fio=?", (u["fio"],)).fetchall()
     con.close()
+    def cur_stage(r):
+        st = r["route"].split("|")
+        return st[min(r["stage"], len(st) - 1)]
+    def can_act(r):
+        stage = cur_stage(r)
+        if u["role_key"] == "admin":
+            return True
+        if stage in ("initiator", "executor"):
+            return u["id"] == r["author_id"]
+        rights = {"head": ("head",), "deputy": ("deputy", "chief"), "chief": ("chief",),
+                  "procurement": ("peo",), "accounting": ("signer",), "peo": ("peo",),
+                  "commission": ("peo", "chief"), "head_mid": ("head", "chief"), "hr": ("hr",)}
+        return u["role_key"] in rights.get(stage, ())
     return ctx(request, rows=rows, steps=steps, stage_names=STAGE_NAMES, certs=certs,
+               cur_stage=cur_stage, can_act=can_act, has_ukiep=bool(certs and any(c["valid_until"] >= str(TODAY) for c in certs)),
                statuses={"on_route": "в маршруте", "signed": "подписано (УКЭП)", "rejected": "отклонено", "rework": "на доработке"},
-               section="Согласование документов и ходатайства")
+               template="requests.html", section="Согласование документов и ходатайства")
 
 @app.post("/requests/new")
 def req_new(request: Request, kind: str = Form(...), subject: str = Form(...), life_threatening: str = Form("")):
@@ -470,17 +503,16 @@ def req_act(request: Request, rid: int, action: str = Form(...), comment: str = 
           (stage == "peo" and u["role_key"] in ("peo", "admin")) or \
           (stage == "commission" and u["role_key"] in ("peo", "chief", "admin")) or \
           (stage == "head_mid" and u["role_key"] in ("head", "chief", "admin")) or \
+          (stage == "hr" and u["role_key"] in ("hr", "admin")) or \
           u["role_key"] == "admin"
     if not can:
         con.close(); raise HTTPException(403, f"Сейчас этап «{STAGE_NAMES.get(stage, stage)}» — действовать должен другой участник маршрута")
     if action == "ukiep":
-        # проверка сертификата в реестре
+        # проверка сертификата в реестре (раздел 4.5 ТЗ: сертификат должен быть действущ)
         cert = con.execute("SELECT * FROM cert_registry WHERE fio=? AND valid_until>=?", (u["fio"], str(TODAY))).fetchone()
         if not cert:
             con.close()
-            return ctx(request, error_ukiep=f"У пользователя «{u['fio']}» нет действующего сертификата УКЭП в реестре — этап не может быть пройден (раздел 4.5 ТЗ)",
-                       rows=con.execute("SELECT * FROM request").fetchall(), steps={}, stage_names=STAGE_NAMES, certs=[],
-                       statuses={}, section="Согласование")
+            raise HTTPException(403, f"У пользователя «{u['fio']}» нет действующего сертификата УКЭП в реестре — подписание невозможно (раздел 4.5 ТЗ). Обратитесь к администратору для обновления реестра сертификатов.")
         con.execute("""UPDATE approval_step SET action='signed_ukiep', comment=?, acted_at=datetime('now','localtime'),
                        signature_cert=? WHERE request_id=? AND step_no=?""",
                     (comment, f"{cert['serial']} (УКЭП, ГОСТ Р 34.10-2012)", rid, r["stage"] + 1))
@@ -497,7 +529,7 @@ def req_act(request: Request, rid: int, action: str = Form(...), comment: str = 
             con.execute("UPDATE request SET stage=? WHERE id=?", (r["stage"] + 1, rid))
         # уведомить следующего
         nxt = stages[r["stage"] + 1] if r["stage"] + 1 < len(stages) else None
-        role_map = {"deputy": "deputy", "chief": "chief", "head": "head", "peo": "peo", "procurement": "peo", "accounting": "signer"}
+        role_map = {"deputy": "deputy", "chief": "chief", "head": "head", "peo": "peo", "procurement": "peo", "accounting": "signer", "hr": "hr"}
         if nxt in role_map:
             nu = con.execute("SELECT id FROM users WHERE role_key=? LIMIT 1", (role_map[nxt],)).fetchone()
             if nu:
@@ -523,7 +555,7 @@ def procurement(request: Request):
     con = get_db()
     contracts = con.execute("SELECT * FROM contract ORDER BY end_date").fetchall()
     con.close()
-    return ctx(request, contracts=contracts, section="Реестр договоров")
+    return ctx(request, contracts=contracts, template="procurement.html", section="Реестр договоров")
 
 # ---------- Залы / календарь ----------
 @app.get("/halls", response_class=HTMLResponse)
@@ -534,7 +566,7 @@ def halls(request: Request):
     con = get_db()
     rows = con.execute("SELECT * FROM booking ORDER BY bdate,btime").fetchall()
     con.close()
-    return ctx(request, bookings=rows, section="Бронирование залов")
+    return ctx(request, bookings=rows, template="halls.html", section="Бронирование залов")
 
 @app.post("/halls/book")
 def hall_book(request: Request, hall: str = Form(...), bdate: str = Form(...), btime: str = Form(...),
@@ -560,7 +592,7 @@ def calendar(request: Request):
     events = con.execute("SELECT * FROM booking WHERE bdate>=? ORDER BY bdate,btime", (str(TODAY),)).fetchall()
     duties = con.execute("SELECT * FROM duty WHERE day>=? ORDER BY day", (str(TODAY),)).fetchall()
     con.close()
-    return ctx(request, events=events, duties=duties, section="Календарь и дежурства")
+    return ctx(request, events=events, duties=duties, template="calendar.html", section="Календарь и дежурства")
 
 # ---------- Объявления ----------
 @app.get("/notices", response_class=HTMLResponse)
@@ -571,7 +603,7 @@ def notices(request: Request):
     con = get_db()
     rows = con.execute("SELECT * FROM notice ORDER BY created_at DESC").fetchall()
     con.close()
-    return ctx(request, notices=rows, can_post=u["role_key"] in ("head", "admin", "chief", "deputy"), section="Доска объявлений")
+    return ctx(request, notices=rows, can_post=u["role_key"] in ("head", "admin", "chief", "deputy"), template="notices.html", section="Доска объявлений")
 
 @app.post("/notices/new")
 def notice_new(request: Request, text: str = Form(...)):
@@ -592,7 +624,7 @@ def go_chs(request: Request):
     con = get_db()
     rows = con.execute("SELECT * FROM go_chs").fetchall()
     con.close()
-    return ctx(request, items=rows, section="ГО и ЧС")
+    return ctx(request, items=rows, template="gochs.html", section="ГО и ЧС")
 
 # ---------- Протоколы и поручения ----------
 @app.get("/protocols", response_class=HTMLResponse)
@@ -607,7 +639,7 @@ def protocols(request: Request):
     mine_tasks = [t for t in tasks if t["assignee_id"] == u["id"]]
     con.close()
     return ctx(request, protos=protos, tasks=tasks, mine_tasks=mine_tasks,
-               statuses={"in_work": "в работе", "done": "выполнено", "overdue": "просрочено"}, section="Протоколы и поручения")
+               statuses={"in_work": "в работе", "done": "выполнено", "overdue": "просрочено"}, template="protocols.html", section="Протоколы и поручения")
 
 @app.post("/protocols/task/{tid}/done")
 def task_done(request: Request, tid: int):
@@ -634,7 +666,7 @@ def deadlines(request: Request):
     con.close()
     def days_left(dt):
         return (datetime.date.fromisoformat(dt) - TODAY).days
-    return ctx(request, rows=rows, days_left=days_left, section="Контроль сроков (аккредитация, допуски, сертификаты)")
+    return ctx(request, rows=rows, days_left=days_left, template="deadlines.html", section="Контроль сроков (аккредитация, допуски, сертификаты)")
 
 # ---------- HR ----------
 @app.get("/hr", response_class=HTMLResponse)
@@ -646,13 +678,15 @@ def hr(request: Request):
     leave = con.execute("""SELECT r.*, a.fio FROM request r JOIN users a ON a.id=r.author_id
                            WHERE r.kind IN ('отпуск','справка') ORDER BY r.created_at DESC""").fetchall()
     con.close()
-    return ctx(request, leave=leave, section="HR-модуль (заявки на отпуск и справки)")
+    return ctx(request, leave=leave, template="hr.html", section="HR-модуль (заявки на отпуск и справки)")
 
 @app.post("/hr/apply")
 def hr_apply(request: Request, kind: str = Form(...), subject: str = Form(...)):
     u = current_user(request)
     if not u:
         return RedirectResponse("/login", status_code=302)
+    if kind not in ("отпуск", "справка"):
+        raise HTTPException(400, "Допустимые виды заявок: отпуск или справка (раздел 4.15 ТЗ)")
     con = get_db()
     con.execute("""INSERT INTO request(kind,subject,dept_id,author_id,route,stage,status,created_at)
                    VALUES(?,?,?,?,'hr',0,'on_route',datetime('now','localtime'))""", (kind, subject, u["dept_id"], u["id"]))
@@ -673,7 +707,7 @@ def surveys(request: Request):
     rows = con.execute("SELECT * FROM survey").fetchall()
     con.close()
     show_results = u["role_key"] in ("quality", "chief", "admin")
-    return ctx(request, surveys=rows, show_results=show_results, section="Опросы сотрудников")
+    return ctx(request, surveys=rows, show_results=show_results, template="surveys.html", section="Опросы сотрудников")
 
 @app.post("/surveys/{sid}/vote")
 def survey_vote(request: Request, sid: int, vote: str = Form(...)):
@@ -695,7 +729,7 @@ def audits(request: Request):
     con = get_db()
     rows = con.execute("SELECT * FROM audit_checklist ORDER BY check_date DESC").fetchall()
     con.close()
-    return ctx(request, audits=rows, section="Чек-листы аудитов")
+    return ctx(request, audits=rows, template="audits.html", section="Чек-листы аудитов")
 
 # ---------- Формуляр ЛС ----------
 @app.get("/drugs", response_class=HTMLResponse)
@@ -706,7 +740,7 @@ def drugs(request: Request, q: str = ""):
     con = get_db()
     rows = con.execute("SELECT * FROM drug_form WHERE name LIKE ? ORDER BY name", (f"%{q}%",)).fetchall()
     con.close()
-    return ctx(request, drugs=rows, q=q, section="Формуляр лекарственных средств")
+    return ctx(request, drugs=rows, q=q, template="drugs.html", section="Формуляр лекарственных средств")
 
 # ---------- МСЭ ----------
 @app.get("/mse", response_class=HTMLResponse)
@@ -715,7 +749,7 @@ def mse(request: Request):
     if not u:
         return RedirectResponse("/login", status_code=302)
     files = ["msel_2026-10-27_001.pdf", "msel_2026-10-27_002.pdf", "msel_2026-10-28_001.pdf"]
-    return ctx(request, mse_files=files, is_registrar=u["role_key"] in ("mse", "admin"), section="Обработка документов МСЭ (каталог ViPNet)")
+    return ctx(request, mse_files=files, is_registrar=u["role_key"] in ("mse", "admin"), template="mse.html", section="Обработка документов МСЭ (каталог ViPNet)")
 
 # ---------- Учёт техники ----------
 @app.get("/assets", response_class=HTMLResponse)
@@ -728,7 +762,7 @@ def assets(request: Request):
     eq = con.execute("""SELECT e.*, d.name dept_name, CAST(julianday(e.verification_date)-julianday(?) AS INT) vdays
                         FROM med_equipment e LEFT JOIN departments d ON d.id=e.dept_id""", (str(TODAY),)).fetchall()
     con.close()
-    return ctx(request, pcs=pcs, equipment=eq, section="Учёт IT-инфраструктуры и медоборудования")
+    return ctx(request, pcs=pcs, equipment=eq, template="assets.html", section="Учёт IT-инфраструктуры и медоборудования")
 
 # ---------- Я новенький ----------
 @app.get("/newbie", response_class=HTMLResponse)
@@ -740,7 +774,7 @@ def newbie(request: Request):
     rows = con.execute("SELECT * FROM newbie").fetchall()
     links = con.execute("SELECT * FROM ext_links").fetchall()
     con.close()
-    return ctx(request, steps=rows, links=links, section="Я новенький")
+    return ctx(request, steps=rows, links=links, template="newbie.html", section="Я новенький")
 
 # ---------- Личный кабинет ----------
 @app.get("/dashboard", response_class=HTMLResponse)
@@ -759,7 +793,7 @@ def dashboard(request: Request):
     def days_left(dt):
         return (datetime.date.fromisoformat(dt) - TODAY).days
     return ctx(request, dls=dls, tasks=tasks, tickets=tickets, ns_cnt=ns_cnt, reqs=reqs, upcoming=upcoming,
-               days_left=days_left, section="Личный кабинет")
+               days_left=days_left, template="dashboard.html", section="Личный кабинет")
 
 # ---------- Уведомления ----------
 @app.get("/notifications", response_class=HTMLResponse)
@@ -771,7 +805,7 @@ def notifications(request: Request):
     rows = con.execute("SELECT * FROM notification WHERE user_id=? ORDER BY created_at DESC", (u["id"],)).fetchall()
     con.execute("UPDATE notification SET read=1 WHERE user_id=?", (u["id"],))
     con.commit(); con.close()
-    return ctx(request, notes=rows, section="Центр уведомлений")
+    return ctx(request, notes=rows, template="notifications.html", section="Центр уведомлений")
 
 # ---------- Админ-панель ----------
 @app.get("/admin", response_class=HTMLResponse)
@@ -789,7 +823,7 @@ def admin(request: Request):
     depts = con.execute("""SELECT d.name, b.name block_name FROM departments d JOIN blocks b ON b.id=d.block_id ORDER BY b.name,d.name""").fetchall()
     con.close()
     return ctx(request, users=users, certs=certs, seclog=seclog, depts=depts,
-               today_str=str(TODAY), section="Административная панель")
+               today_str=str(TODAY), template="admin.html", section="Административная панель")
 
 @app.post("/admin/user/new")
 def admin_user_new(request: Request, fio: str = Form(...), username: str = Form(...), role_key: str = Form(...),
@@ -808,7 +842,7 @@ def admin_user_new(request: Request, fio: str = Form(...), username: str = Form(
         con.commit()
     finally:
         con.close()
-    return ctx(request, flash=f"Пользователь создан. Временный пароль (передать лично): {tmp}", section="Административная панель",
+    return ctx(request, flash=f"Пользователь создан. Временный пароль (передать лично): {tmp}", template="admin.html", section="Административная панель",
                users=get_db().execute("SELECT a.*, d.name dept_name, r.name role_name FROM users a LEFT JOIN departments d ON d.id=a.dept_id LEFT JOIN roles r ON r.key=a.role_key ORDER BY a.fio").fetchall(),
                certs=[], seclog=[], depts=[], today_str=str(TODAY))
 

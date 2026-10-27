@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="grid">
+  <div class="card">
+    <h2 style="margin-top:0">Ближайшие мероприятия (календарь)</h2>
+    <table><tr><th>Дата / время</th><th>Зал</th><th>Тема</th><th>Организатор</th></tr>
+    {% for e in events %}<tr><td>{{ e['bdate'] }} {{ e['btime'] }}</td><td>{{ e['hall'] }}</td><td>{{ e['topic'] }}</td><td>{{ e['organizer'] }}</td></tr>
+    {% else %}<tr><td colspan="4" class="muted">Нет запланированных мероприятий.</td></tr>{% endfor %}</table>
+    <a class="btn sm" href="/halls">Бронирование залов →</a>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">График дежурств</h2>
+    <table><tr><th>Дата</th><th>Служба</th><th>ФИО</th><th>Связь</th></tr>
+    {% for d in duties %}<tr><td>{{ d['day'] }}</td><td>{{ d['service'] }}</td><td>{{ d['fio'] }}</td><td>{{ d['phone'] }}</td></tr>
+    {% else %}<tr><td colspan="4" class="muted">Дежурства назначаются администратором / ОМО.</td></tr>{% endfor %}</table>
+  </div>
+</div>
+<p class="muted">Раздел «Учёт рабочего времени» (табели, подработка) — этап 3 ТЗ п. 4.20; в MVP доступен просмотр графика дежурств и календаря мероприятий.</p>
+{% endblock %}

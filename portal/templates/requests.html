@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="grid">
+  <div class="card">
+    <h2 style="margin-top:0">Создать документ на согласование / ходатайство</h2>
+    <form method="post" action="/requests/new">
+      <div class="frow col"><label>Вид документа (маршрут подставляется по справочнику ТЗ п. 4.5/4.16)</label>
+        <select name="kind">
+          <option value="ходатайство_товар">Ходатайство на закупку товаров (работ, услуг)</option>
+          <option value="ходатайство_работы">Ходатайство на выполнение работ собственными силами</option>
+          <option value="ходатайство_медоборудование">Ходатайство на медоборудование (зам. + главная медсестра)</option>
+          <option value="ходатайство_изменение_договора">Ходатайство на изменение условий договора</option>
+          <option value="ходатайство_общая">Ходатайство общая (заведующий → зам → ПЭО)</option>
+          <option value="согласование_приказ">Проект приказа (исполнитель → зав. → зам → главврач)</option>
+        </select></div>
+      <div class="frow"><input type="text" name="subject" placeholder="Наименование / тема документа" required style="flex:3"></div>
+      <div class="frow"><label style="display:flex;align-items:center;gap:.4rem;width:auto">
+        <input type="checkbox" name="life_threatening" value="yes" style="width:auto"> Жизненно угрожающая ситуация (ускоренный маршрут, уведомляется главный врач)</label></div>
+      <button>Отправить в маршрут</button>
+    </form>
+    {% if has_ukiep %}<p class="muted">✔ В реестре найден ваш действующий сертификат УКЭП — подписание доступно на этапах подписания.</p>
+    {% else %}<p class="muted">⚠ У вас нет действующего сертификата УКЭП в реестре — этапы подписания УКЭП будут для вас закрыты (п. 4.5 ТЗ).</p>{% endif %}
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">Мои текущие задачи по маршрутам</h2>
+    {% set my = rows | selectattr('id','defined') | list %}
+    <table><tr><th>Документ</th><th>Текущий этап</th></tr>
+    {% for r in rows %}{% if can_act(r) and r['status']=='on_route' %}
+    <tr><td>#{{ r['id'] }} {{ r['subject'] }}</td><td>{{ stage_names.get(cur_stage(r), cur_stage(r)) }}</td></tr>
+    {% endif %}{% else %}<tr><td colspan="2" class="muted">Нет активных задач на вашей роли.</td></tr>{% endfor %}</table>
+  </div>
+</div>
+
+<h2>Реестр документов на согласовании</h2>
+<table><tr><th>№</th><th>Вид</th><th>Тема</th><th>Подразделение / автор</th><th>Маршрут и прогресс</th><th>Статус</th><th>Действие</th></tr>
+{% for r in rows %}
+<tr>
+  <td>{{ r['id'] }}{% if r['life_threatening'] %}<br><span class="tag red">жизненно угрожающая</span>{% endif %}</td>
+  <td>{{ r['kind'].replace('_',' ') }}</td>
+  <td><b>{{ r['subject'] }}</b><br><span class="muted">{{ r['created_at'] }}</span></td>
+  <td>{{ r['dept_name'] or '—' }}<br>{{ r['author_fio'] }}</td>
+  <td>
+    <div class="route">
+      {% set stages = r['route'].split('|') %}
+      {% for st in steps[r['id']] %}
+        {% if not loop.first %}<span class="arr">→</span>{% endif %}
+        <span class="st {% if st['action'] %}done{% elif loop.index0 == r['stage'] and r['status']=='on_route' %}cur{% endif %}"
+              title="{{ st['comment'] or '' }}{{ ' · серт. '+st['signature_cert'] if st['signature_cert'] else '' }}">
+          {{ stage_names.get(st['approver_role'], st['approver_role']) }}{% if st['action']=='agreed' %} ✔{% elif st['action']=='signed_ukiep' %} 🔑{% endif %}</span>
+      {% endfor %}
+    </div>
+    {% if r['status']=='on_route' %}<span class="muted">сейчас: {{ stage_names.get(cur_stage(r), cur_stage(r)) }}</span>{% endif %}
+  </td>
+  <td><span class="tag {{ {'signed':'green','rejected':'red','rework':'orange'}.get(r['status'],'') }}">{{ statuses[r['status']] }}</span></td>
+  <td>
+    {% if can_act(r) and r['status'] in ('on_route','rework') %}
+    <form method="post" action="/requests/{{ r['id'] }}/act">
+      <div class="frow" style="margin:0">
+        <input type="text" name="comment" placeholder="Комментарий" style="min-width:140px">
+        <select name="action" style="width:auto">
+          <option value="agree">Согласовать</option>
+          <option value="ukiep">Подписать УКЭП</option>
+          <option value="rework">На доработку</option>
+          <option value="reject">Отклонить</option>
+        </select>
+        <button class="btn sm">Применить</button>
+      </div>
+    </form>
+    {% else %}<span class="muted">—</span>{% endif %}
+  </td>
+</tr>
+{% endfor %}</table>
+<p class="muted">УКЭП: ГОСТ Р 34.10-2012, проверка сертификата по внутреннему реестру (админ-панель). Отклонение и доработка возвращают документ инициатору с уведомлением.</p>
+{% endblock %}

@@ -38,3 +38,20 @@ button:hover,.btn:hover{background:var(--c2);text-decoration:none}
 @media(max-width:900px){
   #burger{display:block}.side{position:fixed;left:-260px;top:60px;bottom:0;transition:left .2s;z-index:9;overflow-y:auto}
   body.nav-open .side{left:0}.content{padding:1rem}.who small{display:none}}
+.navgroup{padding:.7rem 1.1rem .2rem;font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;color:#8a99ab;font-weight:600}
+.navsep{border-top:1px solid var(--line);margin:.5rem 1rem}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.7rem;margin:.6rem 0}
+.tile{background:#fff;border:1px solid var(--line);border-radius:8px;padding:.8rem;text-align:center;color:var(--c2);font-size:.85rem}
+.tile b{display:block;font-size:1.3rem;color:var(--c1)}
+.tile:hover{text-decoration:none;border-color:var(--c1);box-shadow:0 1px 4px rgba(14,90,167,.15)}
+.route{display:flex;flex-wrap:wrap;gap:.3rem;align-items:center;margin:.3rem 0}
+.route .st{padding:2px 9px;border-radius:12px;background:#e2ecf7;color:#5b6f85;font-size:.75rem;border:1px solid transparent}
+.route .st.done{background:#dff3e4;color:var(--ok)}
+.route .st.cur{background:#fff3d6;color:var(--warn);border-color:#e3c07a;font-weight:600}
+.route .arr{color:#b0bccb}
+.kpi{display:flex;gap:.4rem;align-items:baseline}.kpi b{font-size:1.2rem;color:var(--c1)}
+.bar{height:10px;background:#e3e9f0;border-radius:5px;overflow:hidden;min-width:90px}.bar i{display:block;height:100%;background:var(--ok)}
+h3{font-size:.95rem;color:var(--c2);margin:1rem 0 .4rem}
+label{font-size:.82rem;color:#4a5b6d;display:block;margin-bottom:.2rem}
+.frow.col{flex-direction:column;align-items:stretch}
+table form{display:inline}

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block body %}
+<h2>Протоколы совещаний и заседаний</h2>
+<table><tr><th>Дата</th><th>Протокол</th><th>Участники</th></tr>
+{% for p in protos %}<tr><td>{{ p['pdate'] }}</td><td><b>{{ p['title'] }}</b></td><td>{{ p['participants'] }}</td></tr>{% endfor %}</table>
+
+<h2>Поручения из протоколов</h2>
+{% if mine_tasks %}<p class="tag orange">У вас активных поручений: {{ mine_tasks|length }}</p>{% endif %}
+<table><tr><th>Поручение</th><th>Источник</th><th>Исполнитель</th><th>Срок</th><th>Статус</th><th>Действие</th></tr>
+{% for t in tasks %}
+<tr><td>{{ t['text'] }}</td><td><span class="muted">{{ t['source'] }}</span></td><td>{{ t['assignee_fio'] or '—' }}</td>
+<td>{{ t['due_date'] }}{% if t['overdue'] %} <span class="tag red">просрочено</span>{% endif %}</td>
+<td><span class="tag {{ 'green' if t['status']=='done' else ('red' if t['overdue'] else '') }}">{{ statuses.get(t['status'], t['status']) }}</span></td>
+<td>{% if t['assignee_id']==user['id'] or user['role_key'] in ('admin','chief') %}
+  {% if t['status']!='done' %}<form method="post" action="/protocols/task/{{ t['id'] }}/done"><button class="btn sm green">Отметить выполненной</button></form>{% else %}—{% endif %}
+  {% else %}—{% endif %}</td></tr>
+{% endfor %}</table>
+<p class="muted">Просроченные поручения автоматически попадают в сводку для руководства (ТЗ п. 4.9). Загрузка сканов протоколов — этап 3.</p>
+{% endblock %}

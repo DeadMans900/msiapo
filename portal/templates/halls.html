@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="grid">
+  <div class="card">
+    <h2 style="margin-top:0">Забронировать зал / переговорную</h2>
+    <form method="post" action="/halls/book">
+      <div class="frow"><div style="flex:1"><label>Зал</label><select name="hall">
+        <option>Большой зал</option><option>Переговорная 2 этаж</option><option>Конференц-зал (детская поликлиника)</option><option>Зал профобучения (ОМО)</option></select></div>
+      <div style="flex:1"><label>Дата</label><input type="date" name="bdate" value="{{ today }}" required></div>
+      <div style="flex:1"><label>Время</label><input type="time" name="btime" value="09:00" required></div>
+      <div style="max-width:110px"><label>Часы</label><input type="number" name="duration" value="1" min="1" max="8"></div></div>
+      <div class="frow"><input type="text" name="topic" placeholder="Тема мероприятия" required></div>
+      <button>Забронировать</button>
+    </form>
+    <p class="muted">Пересечения по времени система не допускает; бронь фиксируется за организатором.</p>
+  </div>
+</div>
+<h2>Все брони</h2>
+<table><tr><th>Дата</th><th>Время</th><th>Длит.</th><th>Зал</th><th>Тема</th><th>Организатор</th></tr>
+{% for b in bookings | sort(attribute='bdate') %}<tr><td>{{ b['bdate'] }}</td><td>{{ b['btime'] }}</td><td>{{ b['duration'] }} ч</td>
+<td>{{ b['hall'] }}</td><td>{{ b['topic'] }}</td><td>{{ b['organizer'] }}</td></tr>{% endfor %}</table>
+{% endblock %}

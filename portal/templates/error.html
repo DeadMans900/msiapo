@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% set section = "Ошибка" %}
+{% block body %}
+<div class="card" style="max-width:640px">
+  <h2 style="margin-top:0">⛔ Ошибка {{ code }}</h2>
+  <p>{{ detail }}</p>
+  <a class="btn" href="javascript:history.back()">← Назад</a>
+  <a class="btn gray" href="/">На главную</a>
+</div>
+{% endblock %}
+{% block anon %}
+<div class="card" style="max-width:640px;margin:3rem auto">
+  <h1 style="margin-top:0">⛔ Ошибка {{ code }}</h1>
+  <p>{{ detail }}</p>
+  <a class="btn" href="/login">Войти на портал</a>
+</div>
+{% endblock %}

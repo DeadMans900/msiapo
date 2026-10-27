@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="grid">
+  {% for g in items %}
+  <div class="card">
+    <h2 style="margin-top:0">🚨 {{ g['title'] }}</h2>
+    <p>{{ g['body'] }}</p>
+  </div>
+  {% endfor %}
+</div>
+<p class="muted">Раздел ГО и ЧС: инструкции, порядок действий, план тренировок (ТЗ п. 4.13). Ответственный за ГО в организации получает уведомления о поручениях по своему направлению.</p>
+{% endblock %}

@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="grid">
+  <div class="card">
+    <h2 style="margin-top:0">Зарегистрировать НС (анонимно для автора)</h2>
+    <form method="post" action="/ns/new">
+      <div class="frow"><div style="flex:1"><label>Дата и время события</label>
+        <input type="text" name="event_date" value="{{ today }} 09:00" required></div>
+      <div style="flex:2"><label>Подразделение, где произошло событие</label>
+        <select name="dept_id"><option value="0">— не указано —</option>
+        {% for d in depts %}<option value="{{ d['id'] }}">{{ d['name'] }}</option>{% endfor %}</select></div></div>
+      <div class="frow"><div style="flex:1"><label>Характер события (Приложение 2 ТЗ)</label>
+        <select name="character" id="char" onchange="hintSeg()">
+        {% for c in chars %}<option>{{ c }}</option>{% endfor %}</select></div></div>
+      <div class="frow"><textarea name="description" placeholder="Описание события (без персональных данных пациентов)" required></textarea></div>
+      <div class="frow"><input type="text" name="persons" placeholder="Задействованные лица (должности, без ФИО пациентов)"></div>
+      <div class="frow"><div style="flex:1"><label>Связанный СОП (если «не работает СОП»)</label>
+        <select name="sop_id"><option value="0">— нет —</option>
+        {% for s in sops %}<option value="{{ s['id'] }}">{{ s['code'] }} · {{ s['title'] }}</option>{% endfor %}</select></div></div>
+      <div class="frow">
+        <label style="display:flex;align-items:center;gap:.4rem;width:auto">
+          <input type="checkbox" name="make_ticket" value="yes" style="width:auto"> Одновременно создать заявку HelpDesk</label>
+        <select name="ticket_segment" id="seg" style="max-width:220px">
+          {% for k, t in seg_titles.items() %}<option value="{{ k }}">{{ t }}</option>{% endfor %}</select></div>
+      <button>Зарегистрировать</button>
+    </form>
+    <p class="muted">Автор не видит чужих карточек НС; персональные данные пациента не указываются. Менеджер качества получает уведомление автоматически.</p>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">Статистика по характеру событий</h2>
+    {% set total = stats|sum(attribute='c') %}
+    {% for s in stats %}
+      <p style="margin:.3rem 0">{{ s['character'] }} <span class="muted">({{ s['c'] }})</span></p>
+      <div class="bar"><i style="width={{ (100 * s['c'] / total)|round }}%"></i></div>
+    {% else %}<p class="muted">Нет зарегистрированных НС.</p>{% endfor %}
+    <h3>По подразделениям</h3>
+    <table><tr><th>Подразделение</th><th>НС</th></tr>
+    {% for b in by_dept %}<tr><td>{{ b['name'] }}</td><td>{{ b['c'] }}</td></tr>{% endfor %}</table>
+  </div>
+</div>
+
+<h2>Все карточки НС</h2>
+<table><tr><th>№</th><th>Дата события</th><th>Подразделение</th><th>Характер</th><th>Описание</th><th>СОП</th><th>Статус</th><th>Отработка</th></tr>
+{% for n in rows %}
+<tr><td>{{ n['id'] }}</td><td>{{ n['event_date'] }}</td><td>{{ n['dept_name'] or '—' }}</td>
+<td>{{ n['character'] }}</td><td>{{ n['description'] }}{% if n['persons'] %}<br><span class="muted">Лица: {{ n['persons'] }}</span>{% endif %}</td>
+<td>{{ n['sop_code'] or '—' }}</td>
+<td><span class="tag {{ {'registered':'orange','processing':'','closed':'green'}[n['status']] }}">{{ statuses[n['status']] }}</span></td>
+<td>{% if n['conclusion'] %}<b>Вывод:</b> {{ n['conclusion'] }}<br>{% endif %}
+    {% if n['measures'] %}<b>Мероприятия:</b> {{ n['measures'] }}<br>{% endif %}
+    {% if n['due_date'] %}<span class="muted">Срок: {{ n['due_date'] }}</span>{% endif %}
+    {% if n['linked_ticket_id'] %}<a href="/helpdesk">заявка #{{ n['linked_ticket_id'] }}</a>{% endif %}</td></tr>
+{% endfor %}</table>
+
+{% if is_quality %}
+<div class="card">
+  <h2>Отработка НС (менеджер качества)</h2>
+  {% for n in rows %}
+  <h3>НС №{{ n['id'] }} — {{ n['character'] }} ({{ statuses[n['status']] }})</h3>
+  <form method="post" action="/ns/{{ n['id'] }}/process">
+    <div class="frow">
+      <div style="flex:2"><label>Ответственный за отработку</label>
+        <select name="responsible_id"><option value="0">—</option>
+        {% for a in all_users %}<option value="{{ a['id'] }}" {{ 'selected' if n['responsible_id']==a['id'] }}>{{ a['fio'] }}</option>{% endfor %}</select></div>
+      <div style="flex:1"><label>Срок устранения</label><input type="date" name="due_date" value="{{ n['due_date'] or '' }}"></div>
+      <div style="flex:1"><label>Статус</label><select name="status">
+        {% for k, l in statuses.items() %}<option value="{{ k }}" {{ 'selected' if n['status']==k }}>{{ l }}</option>{% endfor %}</select></div>
+    </div>
+    <div class="frow"><div style="flex:1"><label>Вывод комиссии</label><input type="text" name="conclusion" value="{{ n['conclusion'] or '' }}"></div>
+      <div style="flex:1"><label>Корректирующие мероприятия</label><input type="text" name="measures" value="{{ n['measures'] or '' }}"></div>
+      <button class="btn sm">Сохранить отработку</button></div>
+  </form>
+  {% endfor %}
+</div>
+{% endif %}
+
+<script>
+const HINTS = {{ hints | tojson }};
+function hintSeg(){
+  const c = document.getElementById('char').value;
+  const h = HINTS[c];
+  if (h && h !== 'it_or_ahch') document.getElementById('seg').value = h;
+}
+hintSeg();
+</script>
+{% endblock %}

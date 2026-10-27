@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block body %}
+<h2>Реестр договоров</h2>
+<table><tr><th>№ договора</th><th>Дата</th><th>Предмет</th><th>Поставщик / подрядчик</th><th>Сумма, ₽</th><th>Окончание</th><th>Примечание</th><th>Статус</th></tr>
+{% for c in contracts %}<tr><td>{{ c['num'] }}</td><td>{{ c['date'] }}</td><td>{{ c['subject'] }}</td><td>{{ c['supplier'] }}</td>
+<td>{{ "{:,.0f}".format(c['price']) }}</td><td>{{ c['end_date'] }}</td><td>{{ c['notes'] }}</td>
+<td>{% if c['done'] %}<span class="tag green">отработан</span>{% else %}<span class="tag">действует</span>{% endif %}</td></tr>
+{% endfor %}</table>
+<p class="muted">Ходатайства создаются в разделе «Согласование и ходатайства» — там же ведётся маршрутное согласование с УКЭП. Карточки поставщиков и контроль сроков договоров развиваются на этапе 3 (ТЗ п. 4.16).</p>
+
+<h2>Ближайшие окончания договоров</h2>
+<table><tr><th>Договор</th><th>Поставщик</th><th>Окончание</th></tr>
+{% for c in contracts | sort(attribute='end_date') %}{% if not c['done'] %}
+<tr><td>{{ c['num'] }} · {{ c['subject'] }}</td><td>{{ c['supplier'] }}</td><td>{{ c['end_date'] }}</td></tr>{% endif %}{% endfor %}</table>
+{% endblock %}
