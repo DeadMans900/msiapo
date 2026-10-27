@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="grid">
+  <div class="card">
+    <h2 style="margin-top:0">Новая кадровая заявка (раздел 4.15 ТЗ)</h2>
+    <form method="post" action="/hr/apply">
+      <div class="frow"><div style="flex:1"><label>Вид заявки</label>
+        <select name="kind">
+          <option value="отпуск">Заявление на отпуск</option>
+          <option value="справка">Запрос справки (2-НДФЛ, по месту требования и др.)</option>
+        </select></div></div>
+      <div class="frow"><input type="text" name="subject" placeholder="Например: ежегодный оплачиваемый отпуск с 10.11.2026 на 14 календарных дней" required></div>
+      <button>Отправить в отдел кадров</button>
+    </form>
+    <p class="muted">Маршрут: сотрудник → специалист по кадрам → виза непосредственного руководителя (для отпуска). Ответственный увидит заявку в общем списке и уведомлении.</p>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">Мои и кадровые заявки</h2>
+    <table><tr><th>#</th><th>Вид</th><th>Содержание</th><th>Автор</th><th>Статус</th><th>Создана</th></tr>
+    {% for r in leave %}<tr><td>{{ r['id'] }}</td><td>{{ r['kind'] }}</td><td>{{ r['subject'] }}</td>
+      <td>{{ r['fio'] }}</td>
+      <td><span class="tag {{ 'green' if r['status']=='done' else ('orange' if r['status']=='on_route' else '') }}">{{
+        {'on_route':'в согласовании','done':'исполнено','returned':'возвращена','rejected':'отклонена'}.get(r['status'], r['status']) }}</span></td>
+      <td>{{ r['created_at'] }}</td></tr>
+    {% else %}<tr><td colspan="6" class="muted">Заявок пока нет.</td></tr>{% endfor %}</table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block body %}
+<p class="muted">Чек-листы внутренних аудитов СМК (раздел 4.18 ТЗ). Результаты фиксирует менеджер качества.</p>
+<table>
+  <tr><th>#</th><th>Шаблон / тема аудита</th><th>Подразделение</th><th>Аудитор</th><th>Дата проверки</th><th>Результат</th></tr>
+  {% for a in audits %}
+  <tr><td>{{ a['id'] }}</td><td>{{ a['template'] }}</td><td>{{ '№ ' ~ a['dept_id'] if not a['dept_name'] else a['dept_name'] }}</td>
+      <td>{{ a['checked_by'] }}</td><td>{{ a['check_date'] }}</td>
+      <td><span class="tag {{ 'green' if a['result']=='соответствие' else ('red' if a['result'] and 'несоответствие' in a['result'] else 'orange') }}">{{ a['result'] or '—' }}</span></td></tr>
+  {% else %}<tr><td colspan="6" class="muted">Записей нет.</td></tr>{% endfor %}
+</table>
+{% endblock %}

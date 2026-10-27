@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="card">
+  <h2 style="margin-top:0">Каталог защищённой переписки ViPNet (раздел 4.13 ТЗ)</h2>
+  {% if is_registrar %}
+  <p>Вы — ответственный за регистрацию документов МСЭ. Заберите файл из каталога, обработайте и верните результат в тот же каталог.</p>
+  <table><tr><th>Файл</th><th>Действие</th></tr>
+    {% for f in mse_files %}<tr><td>📄 {{ f }}</td><td><a class="btn sm" href="/mse/open/{{ f }}">Открыть / взять в работу</a></td></tr>{% else %}
+    <tr><td colspan="2" class="muted">Каталог пуст.</td></tr>{% endfor %}</table>
+  {% else %}
+  <p class="muted">Просмотр и выгрузка файлов доступны только регистратору МСЭ и администратору. Вам доступен статус обработки.</p>
+  <table><tr><th>Файл</th><th>Статус</th></tr>
+    {% for f in mse_files %}<tr><td>📄 {{ f }}</td><td><span class="tag orange">ожидает регистрации</span></td></tr>{% else %}
+    <tr><td colspan="2" class="muted">Файлов нет.</td></tr>{% endfor %}</table>
+  {% endif %}
+</div>
+<p class="muted">Обмен с бюро МСЭ выполняется через сертифицированные средства криптографической защиты; портал лишь фиксирует факт получения/отправки и не хранит медицинские данные во внешнем контуре.</p>
+{% endblock %}

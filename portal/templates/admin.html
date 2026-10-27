@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="grid">
+  <div class="card">
+    <h2 style="margin-top:0">Создание пользователя (раздел 4.20 ТЗ)</h2>
+    <form method="post" action="/admin/user/new">
+      <div class="frow"><input type="text" name="fio" placeholder="ФИО" required></div>
+      <div class="frow"><input type="text" name="username" placeholder="Логин" required><input type="text" name="position" placeholder="Должность"></div>
+      <div class="frow"><select name="role_key" required>
+        <option value="employee">Сотрудник</option><option value="operator_it">Оператор HelpDesk IT</option>
+        <option value="operator_ahch">Оператор АХЧ</option><option value="operator_mt">Оператор медтехники</option>
+        <option value="quality">Менеджер по качеству</option><option value="hr">Специалист по кадрам</option>
+        <option value="mse">Регистратор МСЭ</option><option value="deputy">Заместитель главврача</option>
+        <option value="chief">Главный врач</option><option value="admin">Администратор</option></select>
+        <input type="number" name="dept_id" placeholder="ID подразделения" min="1">
+        <input type="text" name="email" placeholder="E-mail"></div>
+      <button>Создать и выдать временный пароль</button>
+    </form>
+    <p class="muted">Временный пароль выдаётся один раз и передаётся лично; при первом входе пользователь обязан сменить его.</p>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">Реестр сертификатов УКЭП</h2>
+    <table><tr><th>ФИО владельца</th><th>Серийный №</th><th>Действует до</th></tr>
+    {% for c in certs %}<tr><td>{{ c['fio'] }}</td><td>{{ c['serial'] }}</td>
+      <td>{% set n = (c['valid_until'] | replace('-','') ) %}{{ c['valid_until'] }}
+      {% if c['valid_until'] < today_str %}<span class="tag red">просрочен</span>{% endif %}</td></tr>
+    {% else %}<tr><td colspan="3" class="muted">Записей нет.</td></tr>{% endfor %}</table>
+  </div>
+</div>
+
+<h2>Журнал безопасности (последние 20 событий)</h2>
+<table><tr><th>Дата/время</th><th>Пользователь</th><th>Действие</th><th>IP</th></tr>
+{% for s in seclog %}<tr><td>{{ s['ts'] }}</td><td>{{ s['user'] }}</td><td>{{ s['action'] }}</td><td>{{ s['ip'] }}</td></tr>
+{% else %}<tr><td colspan="4" class="muted">Событий нет.</td></tr>{% endfor %}</table>
+
+<h2>Пользователи ({{ users|length }})</h2>
+<table><tr><th>ID</th><th>ФИО</th><th>Логин</th><th>Подразделение</th><th>Роль</th><th>Активен</th></tr>
+{% for u2 in users %}<tr><td>{{ u2['id'] }}</td><td>{{ u2['fio'] }}</td><td>{{ u2['username'] }}</td>
+  <td>{{ u2['dept_name'] or '—' }}</td><td>{{ u2['role_name'] or u2['role_key'] }}</td>
+  <td>{{ 'да' if u2['active'] else 'нет' }}</td></tr>{% endfor %}</table>
+
+<h2>Нормативный справочник подразделений (распоряжение Минздрава № 54-1580-мр)</h2>
+<table><tr><th>Блок</th><th>Подразделение</th></tr>
+{% for d in depts %}<tr><td>{{ d['block_name'] }}</td><td>{{ d['name'] }}</td></tr>{% endfor %}</table>
+{% endblock %}

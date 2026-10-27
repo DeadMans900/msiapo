@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block body %}
+<h2>IT-инфраструктура (ПК, оргтехника) — раздел 4.11 ТЗ</h2>
+<table><tr><th>Тип</th><th>Модель</th><th>Серийный №</th><th>Подразделение</th><th>Ответственный</th><th>Статус</th></tr>
+{% for p in pcs %}<tr><td>{{ p['type'] }}</td><td>{{ p['model'] }}</td><td>{{ p['serial'] }}</td>
+  <td>{{ p['dept_name'] or '—' }}</td><td>{{ p['responsible'] }}</td>
+  <td><span class="tag {{ 'green' if p['status']=='в эксплуатации' else ('orange' if p['status'] else '') }}">{{ p['status'] }}</span></td></tr>
+{% else %}<tr><td colspan="6" class="muted">Нет данных.</td></tr>{% endfor %}</table>
+
+<h2>Медицинское оборудование — раздел 4.12 ТЗ (поверки и ТО)</h2>
+<table><tr><th>Инв. №</th><th>Наименование</th><th>Подразделение</th><th>Дата следующей поверки/ТО</th><th>Осталось дней</th><th>Статус</th></tr>
+{% for e in equipment %}<tr><td>{{ e['inv_num'] }}</td><td>{{ e['name'] }}</td><td>{{ e['dept_name'] or '—' }}</td>
+  <td>{{ e['verification_date'] }}</td>
+  <td>{% if e['vdays'] is not none and e['vdays'] < 0 %}<span class="tag red">просрочено {{ -e['vdays'] }} дн.</span>
+      {% elif e['vdays'] is not none and e['vdays'] <= 30 %}<span class="tag orange">{{ e['vdays'] }} дн.</span>
+      {% else %}{{ e['vdays'] }} дн.{% endif %}</td>
+  <td>{{ e['status'] }}</td></tr>
+{% else %}<tr><td colspan="6" class="muted">Нет данных.</td></tr>{% endfor %}</table>
+<p class="muted">Учёт ведёт инженер по медтехнике; при скором истечении срока поверки автоматически создаётся заявка HelpDesk (сегмент «Медтехника»).</p>
+{% endblock %}

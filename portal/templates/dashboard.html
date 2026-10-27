@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="grid">
+  <div class="card">
+    <h2 style="margin-top:0">Мои показатели</h2>
+    <div class="tiles">
+      <div class="tile"><b>{{ ns_cnt }}</b><span>регистраций НС</span></div>
+      <div class="tile"><b>{{ reqs }}</b><span>моих ходатайств/заявок</span></div>
+      <div class="tile"><b>{{ tasks|length }}</b><span>активных поручений</span></div>
+      <div class="tile"><b>{{ tickets|length }}</b><span>заявок HelpDesk</span></div>
+    </div>
+    {% if upcoming %}
+    <h3>Ближайшие бронирования залов</h3>
+    <table><tr><th>Дата</th><th>Время</th><th>Зал</th><th>Тема</th></tr>
+    {% for b in upcoming %}<tr><td>{{ b['bdate'] }}</td><td>{{ b['btime'] }}</td><td>{{ b['hall'] }}</td><td>{{ b['topic'] }}</td></tr>{% endfor %}</table>
+    {% endif %}
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">Мои сроки (аккредитация, допуски, сертификаты) — раздел 4.10 ТЗ</h2>
+    <table><tr><th>Вид</th><th>Документ</th><th>Действует до</th><th>Осталось</th></tr>
+    {% for d in dls %}<tr><td>{{ d['kind'] }}</td><td>{{ d['label'] }}</td><td>{{ d['end_date'] }}</td>
+      <td>{% set n = days_left(d['end_date']) %}
+        {% if n < 0 %}<span class="tag red">просрочено {{ -n }} дн.</span>
+        {% elif n <= 60 %}<span class="tag orange">{{ n }} дн.</span>
+        {% else %}{{ n }} дн.{% endif %}</td></tr>
+    {% else %}<tr><td colspan="4" class="muted">Записей о сроках нет.</td></tr>{% endfor %}</table>
+  </div>
+</div>
+<h2>Мои активные поручения (из протоколов и приказов)</h2>
+<table><tr><th>Содержание</th><th>Срок</th><th>Статус</th><th>Источник</th></tr>
+{% for t in tasks %}<tr><td>{{ t['text'] }}</td><td>{{ t['due_date'] }}</td>
+  <td><span class="tag {{ 'green' if t['status']=='done' else ('red' if t['status']=='overdue' else 'orange') }}">{{
+    {'in_work':'в работе','done':'выполнено','overdue':'просрочено'}.get(t['status'], t['status']) }}</span></td>
+  <td>{{ t['source'] or '—' }}</td></tr>
+{% else %}<tr><td colspan="4" class="muted">Поручений нет 🎉</td></tr>{% endfor %}</table>
+{% endblock %}

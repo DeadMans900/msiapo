@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block body %}
+<form class="frow" method="get">
+  <input type="text" name="q" placeholder="Поиск по названию МНН / торговому наименованию" value="{{ q }}">
+  <button>Искать</button>
+</form>
+<table>
+  <tr><th>Наименование</th><th>Лекарственная форма</th><th>Наличие в аптеке</th><th>Примечания</th></tr>
+  {% for d in drugs %}
+  <tr><td><b>{{ d['name'] }}</b></td><td>{{ d['form'] }}</td>
+      <td><span class="tag {{ 'green' if 'есть' in (d['available'] or '') else ('red' if 'нет' in (d['available'] or '') else 'orange') }}">{{ d['available'] }}</span></td>
+      <td>{{ d['notes'] or '—' }}</td></tr>
+  {% else %}<tr><td colspan="4" class="muted">Ничего не найдено.</td></tr>{% endfor %}
+</table>
+<p class="muted">Формуляр актуализируется фармацевтической службой; сведения носят справочный характер для врачей-специалистов (раздел 4.17 ТЗ).</p>
+{% endblock %}

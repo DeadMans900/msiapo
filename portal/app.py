@@ -139,21 +139,25 @@ def change_page(request: Request, first: int = 0):
     u = current_user(request)
     if not u:
         return RedirectResponse("/login", status_code=302)
-    return templates.TemplateResponse(request, "change_password.html", {"user": u, "first": first})
+    return templates.TemplateResponse(request, "change_password.html",
+        {"user": u, "first": first, "menu": ROLE_MENU, "role_names": ROLE_NAMES, "role_vis": ROLE_VIS,
+         "unread": 0, "today": str(TODAY), "q": "", "flash": ""})
 
 @app.post("/change-password")
 def change_post(request: Request, old: str = Form(...), new: str = Form(...)):
     u = current_user(request)
     if not u:
         return RedirectResponse("/login", status_code=302)
+    base_ctx = {"user": u, "menu": ROLE_MENU, "role_names": ROLE_NAMES, "role_vis": ROLE_VIS,
+                "unread": 0, "today": str(TODAY), "q": "", "flash": ""}
     if len(new) < 8 or new.islower() or new.isupper() or not any(c.isdigit() for c in new):
         return templates.TemplateResponse(request, "change_password.html",
-            {"user": u, "first": 0, "error": "Пароль должен быть не менее 8 символов, содержать разные регистры и цифры (п. 6 ТЗ)"}, status_code=400)
+            {**base_ctx, "first": 0, "error": "Пароль должен быть не менее 8 символов, содержать разные регистры и цифры (п. 6 ТЗ)"}, status_code=400)
     con = get_db()
     if u["pw_hash"] != hash_pw(old, u["salt"])[0]:
         con.close()
         return templates.TemplateResponse(request, "change_password.html",
-            {"user": u, "first": 0, "error": "Текущий пароль указан неверно"}, status_code=400)
+            {**base_ctx, "first": 0, "error": "Текущий пароль указан неверно"}, status_code=400)
     h, s = hash_pw(new)
     con.execute("UPDATE users SET pw_hash=?, salt=?, must_change_pw=0 WHERE id=?", (h, s, u["id"]))
     con.commit(); con.close()
@@ -251,7 +255,9 @@ def sops(request: Request):
     for r in rows:
         linked_ns[r["id"]] = con.execute("SELECT id,description,status FROM ns_event WHERE sop_id=?", (r["id"],)).fetchall()
     con.close()
-    return ctx(request, rows=rows, read_ids=read_ids, linked_ns=linked_ns, template="sops.html", section="СОПы")
+    return ctx(request, rows=rows, read_ids=read_ids, linked_ns=linked_ns, template="sops.html", section="СОПы",
+               statuses={"registered": "зарегистрировано", "processing": "в отработке",
+                         "analyzed": "проанализировано", "closed": "закрыто"})
 
 @app.post("/sops/{sid}/read")
 def sop_read(request: Request, sid: int):
@@ -317,7 +323,7 @@ def hd_new(request: Request, segment: str = Form(...), summary: str = Form(...),
     con = get_db()
     con.execute("""INSERT INTO ticket(segment,category,summary,description,dept_id,room,asset_ref,author_id,status,sla_hours,created_at)
                    VALUES(?,?,?,?,?,?,?,?, 'created', ?, datetime('now','localtime'))""",
-                (segment, category, summary, description, u["dept_id"], room, asset_ref, 24))
+                (segment, category, summary, description, u["dept_id"], room, asset_ref, u["id"], 24))
     tid = con.lastrowid
     op_role = OP_ROLE[segment]
     op = con.execute("SELECT id FROM users WHERE role_key=? AND active=1 LIMIT 1", (op_role,)).fetchone()

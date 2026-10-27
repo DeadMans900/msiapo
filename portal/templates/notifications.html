@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="card">
+  {% for n in notes %}
+  <div class="note {{ '' if n['read'] else 'unread' }}">
+    <a href="{{ n['link'] }}">{{ n['text'] }}</a>
+    <span class="muted">{{ n['created_at'] }}{% if not n['read'] %} · <b>новое</b>{% endif %}</span>
+  </div>
+  {% else %}
+  <p class="muted">Уведомлений нет. Здесь появляются новости о назначенных вам заявках, согласованиях, поручениях и истекающих сроках (раздел 4.16 ТЗ).</p>
+  {% endfor %}
+</div>
+<p class="muted">Все уведомления при открытии страницы помечаются прочитанными.</p>
+{% endblock %}

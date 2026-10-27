@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block body %}
+{% for s in surveys %}
+<div class="card">
+  <h2 style="margin-top:0">{{ s['title'] }} {% if s['anon'] %}<span class="tag">анонимный</span>{% else %}<span class="tag orange">именной</span>{% endif %}</h2>
+  {% set opts = s['options'].split('|') %}
+  <form class="frow" method="post" action="/surveys/{{ s['id'] }}/vote">
+    <button name="vote" value="a" class="btn">{{ opts[0] }}</button>
+    <button name="vote" value="b" class="btn gray">{{ opts[1] }}</button>
+  </form>
+  {% if show_results %}
+    {% set tot = s['votes_a'] + s['votes_b'] %}
+    <p class="muted">Результаты: {{ opts[0] }} — {{ s['votes_a'] }} ({{ '%.0f'|format(s['votes_a']*100/tot) if tot else 0 }}%),
+      {{ opts[1] }} — {{ s['votes_b'] }} ({{ '%.0f'|format(s['votes_b']*100/tot) if tot else 0 }}%), всего голосов {{ tot }}.</p>
+    <div class="bar"><span style="width:{{ (s['votes_a']*100/tot) if tot else 0 }}%"></span></div>
+  {% else %}
+    <p class="muted">Итоги видны менеджеру качества, руководству и администратору после завершения опроса.</p>
+  {% endif %}
+</div>
+{% else %}
+<div class="card"><p class="muted">Активных опросов нет.</p></div>
+{% endfor %}
+{% endblock %}

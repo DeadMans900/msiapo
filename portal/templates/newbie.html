@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="grid">
+  <div class="card">
+    <h2 style="margin-top:0">Первые шаги нового сотрудника (раздел 4.19 ТЗ)</h2>
+    <ol>
+      {% for s in steps %}<li><b>{{ s['step'] }}</b><br><span class="muted">{{ s['hint'] }}</span></li>{% else %}
+      <li class="muted">Маршрут ещё не заполнен администратором.</li>{% endfor %}
+    </ol>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">Полезные внешние ресурсы</h2>
+    <ul>
+      {% for l in links %}<li><a href="{{ l['url'] }}" target="_blank">{{ l['name'] }}</a></li>{% else %}
+      <li class="muted">Ссылок нет.</li>{% endfor %}
+    </ul>
+    <p class="muted">Нужны доступ, рабочее место или пропуск? Создайте заявку в разделе «HelpDesk» — исполнитель назначится автоматически.</p>
+  </div>
+</div>
+{% endblock %}
