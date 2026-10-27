@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Внутренний портал ОГАУЗ «Медсанчасть ИАПО» — прототип по ТЗ ред. 11.
 FastAPI + SQLite + Jinja2. Запуск: uvicorn app:app --host 0.0.0.0 --port 8000 (из папки portal)."""
-import datetime, secrets, hashlib
+import datetime, secrets, hashlib, os
 from fastapi import FastAPI, Request, Form, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
@@ -11,7 +11,11 @@ from db import get_db, init_db, hash_pw, NS_CHARACTERS, NS_SEGMENT_HINT, HD_CATE
 
 init_db()
 app = FastAPI(title="Портал МСЧ ИАПО")
-app.add_middleware(SessionMiddleware, secret_key="dev-secret-change-in-prod", max_age=8 * 3600)
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=os.environ.get("PORTAL_SECRET", "dev-secret-change-in-prod"),
+    max_age=8 * 3600,
+)
 templates = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -194,7 +198,8 @@ def search(request: Request, q: str = ""):
                        ("Приказ", "SELECT title FROM orders WHERE title LIKE ? OR num LIKE ?"),
                        ("Подразделение", "SELECT name FROM departments WHERE name LIKE ?"),
                        ("Справочник", "SELECT fio FROM phonebook WHERE fio LIKE ? OR phone LIKE ?")]:
-            for r in con.execute(sql, (like, like)).fetchall():
+            n = sql.count("?")
+            for r in con.execute(sql, (like,) * n).fetchall():
                 res.append((t, list(r)[0]))
         con.close()
     return ctx(request, q=q, results=res[:50], template="search.html", section="Поиск")
@@ -321,10 +326,10 @@ def hd_new(request: Request, segment: str = Form(...), summary: str = Form(...),
         raise HTTPException(400, "Неизвестный сегмент заявки")
     category = cats[0]
     con = get_db()
-    con.execute("""INSERT INTO ticket(segment,category,summary,description,dept_id,room,asset_ref,author_id,status,sla_hours,created_at)
-                   VALUES(?,?,?,?,?,?,?,?, 'created', ?, datetime('now','localtime'))""",
-                (segment, category, summary, description, u["dept_id"], room, asset_ref, u["id"], 24))
-    tid = con.lastrowid
+    cur_ins = con.execute("""INSERT INTO ticket(segment,category,summary,description,dept_id,room,asset_ref,author_id,status,sla_hours,created_at)
+                   VALUES(?,?,?,?,?,?,?,?,'created',24,datetime('now','localtime'))""",
+                (segment, category, summary, description, u["dept_id"], room, asset_ref, u["id"]))
+    tid = cur_ins.lastrowid
     op_role = OP_ROLE[segment]
     op = con.execute("SELECT id FROM users WHERE role_key=? AND active=1 LIMIT 1", (op_role,)).fetchone()
     if op:
@@ -477,7 +482,7 @@ def req_new(request: Request, kind: str = Form(...), subject: str = Form(...), l
     con.execute("""INSERT INTO request(kind,subject,dept_id,author_id,route,stage,status,created_at,life_threatening)
                    VALUES(?,?,?,?,?,0,?, datetime('now','localtime'), ?)""",
                 (kind, subject, u["dept_id"], u["id"], route, "on_route", lt))
-    rid = con.lastrowid
+    rid = con.execute("SELECT max(id) FROM request").fetchone()[0]
     i = 1
     for st in route.split("|"):
         con.execute("INSERT INTO approval_step(request_id,step_no,approver_role) VALUES(?,?,?)", (rid, i, st))

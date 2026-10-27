@@ -5,9 +5,11 @@ import sqlite3, os, hashlib, secrets
 DB_PATH = os.path.join(os.path.dirname(__file__), "portal.db")
 
 def get_db():
-    con = sqlite3.connect(DB_PATH)
+    con = sqlite3.connect(DB_PATH, timeout=15)
     con.row_factory = sqlite3.Row
     con.execute("PRAGMA foreign_keys=ON")
+    con.execute("PRAGMA journal_mode=WAL")
+    con.execute("PRAGMA busy_timeout=15000")
     return con
 
 ROLE_SEED = [

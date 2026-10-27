@@ -1,3 +1,7 @@
+portal/portal.db-shm
+portal/portal.db-wal
 __pycache__/
 *.pyc
-*.log
+portal.db-shm
+portal.db-wal
+server.log
