@@ -54,3 +54,60 @@ python -m uvicorn app:app --host 127.0.0.1 --port 8000 --workers 2 --proxy-heade
   и добавьте `--proxy-headers --forwarded-allow-ips='*'`.
 - Тесты: `python test_portal.py` при запущенном сервере (проверяет все разделы,
   POST-сценарии и разграничение доступа).
+
+## Запуск и тестирование под Windows
+
+### Вариант 1 — PowerShell (рекомендуется)
+
+```powershell
+# 1. Установить Python 3.12+ с https://python.org (галка "Add python.exe to PATH")
+cd portal
+py -m venv .venv
+.venv\Scripts\Activate
+pip install -r requirements.txt
+
+# 2. Запуск сервера разработки
+uvicorn app:app --host 127.0.0.1 --port 8000 --reload
+# открыть http://localhost:8000/login
+```
+
+### Вариант 2 — cmd.exe
+
+```bat
+cd portal
+python -m venv .venv
+.venv\Scripts\activate.bat
+pip install -r requirements.txt
+python -m uvicorn app:app --host 127.0.0.1 --port 8000 --reload
+```
+
+### Автоматические тесты (Windows)
+
+В двух окнах PowerShell:
+
+```powershell
+# окно 1 — сервер
+cd portal; .venv\Scripts\Activate; uvicorn app:app --host 127.0.0.1 --port 8000
+
+# окно 2 — тесты (43 проверки: все разделы, POST-сценарии, роли, блокировка входа)
+cd portal; .venv\Scripts\Activate; python test_portal.py
+```
+
+Ожидаемый итог: `==== FAILURES: 0`.
+
+### Типичные проблемы на Windows
+
+- **«Access is denied» на pip install** — запускайте терминал без администратора внутри venv, либо `py -m pip install ...`.
+- **Порт 8000 занят** (`[Errno 10048]`): смените порт `--port 8080` и в `test_portal.py` строку `BASE = "http://127.0.0.1:8080"`.
+- **Антивирус/SmartScreen** блокирует uvicorn — добавьте исключение для папки проекта.
+- **Кодировка кириллицы в консоли**: `chcp 65001` перед запуском.
+- **Брандмауэр**: для доступа коллег из сети запускайте с `--host 0.0.0.0` и разрешите входящие на порт 8000 (или используйте IIS/nginx как reverse-proxy).
+- **Файлы БД** `portal.db-shm/-wal` — служебные SQLite (в .gitignore); для чистой переинициализации удалите `portal.db*`.
+
+### Автозапуск как служба Windows
+
+Проще всего — NSSM: `nssm install PortalMSCh "C:\portal\.venv\Scripts\uvicorn.exe" "app:app --host 127.0.0.1 --port 8000"` (WorkingDirectory = папка portal). Либо планировщик задач с триггером «при загрузке ОС».
+
+### Продакшен под Windows
+
+Uvicorn + IIS ARR (reverse proxy с TLS) или Caddy/nginx for Windows; секрет сессий — `$env:PORTAL_SECRET = "..."` (PowerShell) или `set PORTAL_SECRET=...` (cmd) перед запуском.

@@ -115,17 +115,27 @@ def login_page(request: Request):
 @app.post("/login")
 def login(request: Request, username: str = Form(...), password: str = Form(...)):
     con = get_db()
+    client_ip = request.client.host if request.client else "-"
     u = con.execute("SELECT * FROM users WHERE username=? AND active=1", (username,)).fetchone()
     ok = u and u["pw_hash"] == hash_pw(password, u["salt"])[0]
+    # окно блокировки: последние 15 минут (п. 6 ТЗ); attempts_at — время 5-й подряд неудачи
+    win = "ts > datetime('now','localtime','-15 minutes')"
+    row = con.execute(f"SELECT ts FROM security_log WHERE user=? AND action='неудачный вход' AND {win} ORDER BY id DESC LIMIT 1 OFFSET 4", (username,)).fetchone()
+    if row:
+        unlock = con.execute("SELECT datetime(?, '+15 minutes') t", (row["ts"],)).fetchone()["t"]
+        con.execute("INSERT INTO security_log VALUES(NULL,datetime('now','localtime'),?, 'вход отклонён (блокировка)', ?)",
+                    (username, client_ip))
+        con.commit(); con.close()
+        return templates.TemplateResponse(request, "login.html",
+            {"error": "Учётная запись заблокирована на 15 минут после 5 неудачных попыток входа (до %s). Политика паролей, п. 6 ТЗ." % unlock},
+            status_code=423)
     if not u or not ok:
         con.execute("INSERT INTO security_log VALUES(NULL,datetime('now','localtime'),?, 'неудачный вход', ?)",
-                    (username, request.client.host if request.client else "-"))
+                    (username, client_ip))
         con.commit(); con.close()
         return templates.TemplateResponse(request, "login.html", {"error": "Неверный логин или пароль"}, status_code=401)
-    fails = con.execute("SELECT COUNT(*) c FROM security_log WHERE user=? AND action='неудачный вход' AND ts > datetime('now','localtime','-15 minutes')", (username,)).fetchone()["c"]
-    if fails >= 5:
-        con.close()
-        return templates.TemplateResponse(request, "login.html", {"error": "Учётная запись временно заблокирована на 15 минут (политика паролей, п. 6 ТЗ)"}, status_code=423)
+    # успешный вход: погашаем предыдущие неудачи этого пользователя — счётчик сбрасывается
+    con.execute("UPDATE security_log SET action='неудачный вход (погашен)' WHERE user=? AND action='неудачный вход'", (username,))
     con.execute("INSERT INTO security_log VALUES(NULL,datetime('now','localtime'),?, 'вход', ?)", (username, request.client.host if request.client else "-"))
     con.commit(); con.close()
     request.session["uid"] = u["id"]
