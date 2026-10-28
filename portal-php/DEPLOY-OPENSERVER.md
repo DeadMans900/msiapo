@@ -1,4 +1,15 @@
-# Установка на OpenServer (Windows) — msiapo.test
+# Установка на OpenServer (Windows) — msiapo2.local
+
+## ⚡ 404 «Не найдено» при открытии http://msiapo2.local/login
+Почти всегда это **недостроенный .htaccess** в папке `public` или **не тот корень домена**:
+1. Корень домена в OpenServer должен указывать НАПРЯМУЮ на папку `public`:
+   `F:\...\domains\msiapo2.local\public`. Если домен создан копированием (перенёсся только index.php, а app/ и vendor/ остались выше) — пересоздайте домен как **ссылку (symlink/junction)** на распакованный проект, либо распакуйте архив целиком внутрь папки домена.
+   Быстрая проверка: откройте http://msiapo2.local/index.php — если это работает, а /login даёт 404 → не работает mod_rewrite/.htaccess (см. п.2).
+2. В настройках Apache включите `mod_rewrite` (конфиг httpd.conf: `LoadModule rewrite_module`) и для папки проекта:
+   `<Directory "..."> AllowOverride All </Directory>` (в OpenServer: конфигурация Apache → снятие комментария с rewrite_module; Alias-домены получают AllowOverride по умолчанию).
+3. Файл `public/.htaccess` должен существовать и быть виден (в Windows проводнике включите показ скрытых файлов; некоторые архиваторы/антивирусы его «съедают»). В свежем `msiapo-deploy.zip` он есть.
+4. Перезапустите OpenServer после правок.
+
 
 Ошибка `require(.../vendor/autoload.php): No such file or directory` означает,
 что не установлены PHP-зависимости: папка `vendor/` намеренно исключена из Git
@@ -18,7 +29,7 @@
 
 3. **Установите зависимости** (в корне проекта, там где composer.json):
    ```powershell
-   cd F:\Program\open_server\domains\msiapo.test
+   cd F:\Program\open_server\domains\msiapo2.local
    composer install --no-dev --optimize-autoloader
    ```
 
@@ -35,7 +46,7 @@
    DB_DATABASE=portal
    DB_USERNAME=root
    DB_PASSWORD=
-   APP_URL=http://msiapo.test
+   APP_URL=http://msiapo2.local
    ```
 
 5. **Создайте базу** в phpMyAdmin/OpenServer: БД `portal` (utf8mb4_unicode_ci), затем:
@@ -43,11 +54,11 @@
    php artisan migrate:fresh --seed
    ```
 
-6. **Домен в OpenServer**: создайте домен `msiapo.test` с корнем в папке
+6. **Домен в OpenServer**: создайте домен `msiapo2.local` с корнем в папке
    `public` вашего проекта (не самой папки public как docroot-копии — корень
-   домена должен указывать на `...\msiapo.test\public`).
+   домена должен указывать на `...\msiapo2.local\public`).
 
-Откройте http://msiapo.test → вход: admin@portal.local / password
+Откройте http://msiapo2.local → вход: admin@portal.local / password
 
 ## Частые проблемы
 - Нет `php` в PATH → используйте консоль OpenServer («Консоль» → PowerShell от админа)
