@@ -53,4 +53,17 @@
 - Нет `php` в PATH → используйте консоль OpenServer («Консоль» → PowerShell от админа)
   или полный путь: `F:\Program\open_server\userdata\php\php-8.2-nts-Win32-VS17-x64\php.exe artisan ...`
 - `could not find driver` → выключено `pdo_mysql` в настройках PHP модуля OpenServer.
-- 500 после git-pull → `composer install` + `php artisan config:clear`.
+- **500 «Внутренняя ошибка сервера»** — самые частые причины по порядку:
+  1. `.env` скопирован из старого `.env.example`, где было `DB_CONNECTION=sqlite`
+     и закомментированы `DB_HOST/DB_PORT/DB_DATABASE/DB_USERNAME/DB_PASSWORD`
+     → Laravel падает при подключении к БД. В актуальном `.env.example` (в репозитории)
+     уже прописан mysql — просто перескопируйте: `copy .env.example .env`
+     (не забудьте затем `php artisan key:generate`).
+  2. Не создан ключ APP_KEY → `php artisan key:generate`.
+  3. Не выполнены миграции (нет таблиц) → `php artisan migrate:fresh --seed`.
+  4. Старый кэш конфигурации → `php artisan config:clear && php artisan cache:clear`.
+  5. Недоступны права на запись в `storage/` (редко на Windows).
+  Точный текст ошибки смотрите в логе: `storage/logs/laravel.log` (последняя строка ERROR)
+  или временно поставьте в `.env`: `APP_DEBUG=true` и `APP_ENV=local`.
+- Composer требует PHP ≥8.2: убедитесь, что именно версия из OpenServer вызывается
+  командой `php -v` (в консоли OpenServer это по умолчанию так).
