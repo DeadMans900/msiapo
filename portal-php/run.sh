@@ -32,3 +32,5 @@ fi
 pgrep -f "artisan serve" > /dev/null || (php artisan serve --host=0.0.0.0 --port=8000 > /tmp/serve.log 2>&1 &)
 sleep 2
 echo "Сайт: http://localhost:8000   (логин: admin@portal.local / password)"
+
+# --- Для локального сервера (OpenServer/XAMPP) см. DEPLOY-OPENSERVER.md ---
