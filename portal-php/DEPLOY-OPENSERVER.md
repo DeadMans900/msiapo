@@ -60,6 +60,25 @@
 
 Откройте http://msiapo2.local → вход: admin@portal.local / password
 
+## ⚡ 500 «Внутренняя ошибка сервера» — диагностика за 1 минуту
+1. Включите подробный вывод ошибки — в `.env` должно быть:
+   ```
+   APP_ENV=local
+   APP_DEBUG=true
+   ```
+   затем `php artisan config:clear` и обновите страницу. Laravel покажет точную причину.
+2. Типовые причины (по частоте):
+   - **Пустой APP_KEY** («No application encryption key…») → `php artisan key:generate`
+     (выполняется ОДИН раз после `copy .env.example .env`).
+   - **Access denied for user 'root'@'localhost'** → OpenServer по умолчанию пустой пароль root;
+     проверьте в `.env`: `DB_USERNAME=root`, `DB_PASSWORD=` (пусто). Если используете
+     пользователя `portal` — укажите его пароль.
+   - **Base table or view not found … sessions** → сессии хранятся в БД, а таблицы ещё нет.
+     Актуальный `.env.example` использует `SESSION_DRIVER=file` — перескопируйте `.env`
+     из `.env.example` либо выполните миграции до первого открытия сайта.
+   - Нет таблиц → `php artisan migrate:fresh --seed`.
+3. Точный текст ошибки всегда в `storage/logs/laravel.log` (последная строка ERROR).
+
 ## Частые проблемы
 - Нет `php` в PATH → используйте консоль OpenServer («Консоль» → PowerShell от админа)
   или полный путь: `F:\Program\open_server\userdata\php\php-8.2-nts-Win32-VS17-x64\php.exe artisan ...`
