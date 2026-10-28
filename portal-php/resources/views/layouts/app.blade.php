@@ -27,6 +27,24 @@
         input,select,textarea{width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;font:inherit;margin-bottom:12px}
         label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
         .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+        
+        .muted{color:var(--muted)}
+        .card-title{color:var(--primary);margin-bottom:12px;font-size:16px}
+        .widget{padding:0}
+        .widget a.widget-link{display:flex;align-items:center;gap:14px;padding:18px;text-decoration:none;color:inherit}
+        .widget.disabled{opacity:.5;background:#fafbfc}
+        .widget .widget-icon{font-size:26px}
+        .widget-count{font-size:22px;font-weight:700;color:var(--primary)}
+        .widget-count span{font-size:12px;font-weight:400;color:var(--muted)}
+        .news-item{display:flex;gap:14px;padding:10px 0;border-bottom:1px solid var(--border)}
+        .news-item:last-child{border-bottom:none}
+        .news-date{color:var(--muted);font-size:12px;white-space:nowrap;padding-top:3px}
+        .news-item p{font-size:14px;color:var(--text);margin-top:2px}
+        .ext-link{display:block;padding:8px 10px;border-radius:6px;color:var(--primary);text-decoration:none;font-size:14px}
+        .ext-link:hover{background:var(--accent)}
+        .bday{display:flex;gap:8px;align-items:baseline;padding:6px 0;border-bottom:1px dashed var(--border);font-size:14px}
+        .bday:last-child{border-bottom:none}
+        .bday-date{font-weight:700;color:var(--primary);min-width:44px}
         .alert-danger{background:#fdecea;color:#b3261e;padding:10px;border-radius:6px;margin-bottom:16px;font-size:14px}
     </style>
 </head>

@@ -6,8 +6,8 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\PhonebookController;
 use Illuminate\Support\Facades\Route;
 
-// Гостевые маршруты
-Route::get('/', [HomeController::class, 'index'])->name('home');
+// Главная доступна только после входа (как в исходном прототипе)
+Route::get('/', [HomeController::class, 'index'])->middleware('auth')->name('home');
 
 // ===== Шаг 2: Аутентификация и роли =====
 Route::middleware('guest')->group(function () {
