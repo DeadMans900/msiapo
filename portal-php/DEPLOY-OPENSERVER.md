@@ -73,9 +73,9 @@
    - **Access denied for user 'root'@'localhost'** → OpenServer по умолчанию пустой пароль root;
      проверьте в `.env`: `DB_USERNAME=root`, `DB_PASSWORD=` (пусто). Если используете
      пользователя `portal` — укажите его пароль.
-   - **Base table or view not found … sessions** → сессии хранятся в БД, а таблицы ещё нет.
-     Актуальный `.env.example` использует `SESSION_DRIVER=file` — перескопируйте `.env`
-     из `.env.example` либо выполните миграции до первого открытия сайта.
+   - **Base table or view not found … sessions/cache** → сессии/кэш хранились в БД до миграций.
+     Актуальный `.env.example` использует `SESSION_DRIVER=file` и `CACHE_STORE=file` —
+     перескопируйте `.env` из `.env.example`, затем `php artisan config:clear`.
    - Нет таблиц → `php artisan migrate:fresh --seed`.
 3. Точный текст ошибки всегда в `storage/logs/laravel.log` (последная строка ERROR).
 
