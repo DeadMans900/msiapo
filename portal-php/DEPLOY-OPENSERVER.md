@@ -77,7 +77,27 @@
      Актуальный `.env.example` использует `SESSION_DRIVER=file` и `CACHE_STORE=file` —
      перескопируйте `.env` из `.env.example`, затем `php artisan config:clear`.
    - Нет таблиц → `php artisan migrate:fresh --seed`.
-3. Точный текст ошибки всегда в `storage/logs/laravel.log` (последная строка ERROR).
+   - **Class "NunoMaduro\Collision\Adapters\Laravel\CollisionServiceProvider" not found**
+     → устаревший кэш пакетов Laravel из dev-окружения попал в архив/OpenServer.
+     Исправление (в корне проекта):
+     ```powershell
+     del bootstrap\cache\packages.php bootstrap\cache\services.php
+     composer dump-autoload
+     php artisan config:clear
+     ```
+     В актуальном `msiapo-deploy.zip` файлы `bootstrap/cache/*.php` больше не включаются.
+3. Точный текст ошибки всегда в `storage/logs/laravel.log` (последняя строка ERROR).
+
+## ⚡ Как собрать msiapo-deploy.zip (для разработчика)
+```bash
+cd portal-php
+zip -r ../msiapo-deploy.zip . \
+  -x "vendor/*" ".env" "node_modules/*" \
+  "bootstrap/cache/*.php" "storage/framework/views/*.php" "storage/framework/sessions/*" "storage/logs/*"
+```
+ВАЖНО: `bootstrap/cache/*.php` исключать обязательно — иначе на проде Laravel
+загрузит провайдеры dev-пакетов (Collision), отсутствующих при `composer install --no-dev`,
+и выдаст 500 «Class ... not found».
 
 ## Частые проблемы
 - Нет `php` в PATH → используйте консоль OpenServer («Консоль» → PowerShell от админа)
